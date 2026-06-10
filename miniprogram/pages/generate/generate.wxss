@@ -1,0 +1,311 @@
+/* generate.wxss — 干净、稳定的样式 */
+
+page {
+  background: #FFF5F0;
+  padding-bottom: 40rpx;
+}
+
+/* ===== 头部 ===== */
+.head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30rpx 0 10rpx;
+}
+.head-icon { font-size: 64rpx; }
+.head-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #333;
+  margin-top: 6rpx;
+}
+.head-desc {
+  font-size: 24rpx;
+  color: #BB9A9A;
+  margin-top: 6rpx;
+}
+
+/* ===== 类型切换 ===== */
+.tabs {
+  display: flex;
+  margin: 20rpx 30rpx;
+  background: #FFE8EC;
+  border-radius: 36rpx;
+  padding: 6rpx;
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #CC8A9A;
+  border-radius: 30rpx;
+}
+.tab.on {
+  background: #FFF;
+  color: #FF6B8A;
+  font-weight: 700;
+  box-shadow: 0 4rpx 12rpx rgba(255,107,138,0.15);
+}
+
+/* ===== 卡片 ===== */
+.card {
+  margin: 0 30rpx 20rpx;
+  background: #FFF;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03);
+}
+.card-label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
+}
+.card-label text:first-child {
+  margin-right: 12rpx;
+}
+
+/* ===== 输入框 ===== */
+.ipt {
+  width: 100%;
+  height: 84rpx;
+  background: #FAFAFA;
+  border: 2rpx solid #FFE8EC;
+  border-radius: 14rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+  color: #333;
+}
+
+/* ===== Chip 行 ===== */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+}
+.chip {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 22rpx;
+  border-radius: 24rpx;
+  font-size: 25rpx;
+  background: #F8F8F8;
+  color: #888;
+  margin-right: 14rpx;
+  margin-bottom: 10rpx;
+  border: 2rpx solid transparent;
+}
+.chip.on {
+  background: #FFF0F3;
+  border-color: #FF6B8A;
+  color: #FF6B8A;
+  font-weight: 600;
+}
+.dot {
+  width: 26rpx;
+  height: 26rpx;
+  border-radius: 7rpx;
+  margin-right: 8rpx;
+}
+
+/* ===== 主题标签 ===== */
+.theme-wrap {
+  display: flex;
+  flex-wrap: wrap;
+}
+.theme-tag {
+  display: flex;
+  align-items: center;
+  padding: 10rpx 18rpx;
+  border-radius: 22rpx;
+  font-size: 24rpx;
+  background: #F8F8F8;
+  color: #888;
+  margin-right: 12rpx;
+  margin-bottom: 10rpx;
+  border: 2rpx solid transparent;
+}
+.theme-tag.on {
+  background: #FFF0F3;
+  border-color: #FF6B8A;
+  color: #FF6B8A;
+  font-weight: 600;
+}
+.theme-tag .dot {
+  margin-right: 6rpx;
+}
+
+/* ===== 当前色指示 ===== */
+.cur-dot {
+  width: 30rpx;
+  height: 30rpx;
+  border-radius: 8rpx;
+  box-shadow: 0 1rpx 6rpx rgba(0,0,0,0.12);
+}
+.cur-dot-bg {
+  border: 1rpx solid #DDD;
+}
+
+/* ===== 颜料板网格 ===== */
+.swatch-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+.swatch {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12rpx;
+  margin-bottom: 10rpx;
+  border: 4rpx solid transparent;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.06);
+  box-sizing: border-box;
+}
+.swatch.on {
+  border-color: #FF6B8A;
+  transform: scale(1.12);
+  box-shadow: 0 4rpx 16rpx rgba(255,107,138,0.25);
+}
+.swatch-ck {
+  font-size: 22rpx;
+  color: #FFF;
+  font-weight: bold;
+}
+.swatch-ck.dark {
+  color: #333;
+}
+
+/* ===== 选择器 ===== */
+.picker-val {
+  padding: 14rpx 20rpx;
+  background: #F8F8F8;
+  border-radius: 14rpx;
+  font-size: 26rpx;
+  color: #555;
+}
+
+/* ===== 生成按钮 ===== */
+.gen-btn {
+  margin: 0 30rpx;
+  width: calc(100% - 60rpx);
+  height: 90rpx;
+  background: linear-gradient(135deg, #FF6B8A, #FFA0B0);
+  color: #FFF;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 45rpx;
+  border: none;
+  box-shadow: 0 8rpx 24rpx rgba(255,107,138,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+.gen-btn[disabled] {
+  background: #E0E0E0;
+  color: #BBB;
+  box-shadow: none;
+}
+
+/* ===== 加载 ===== */
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 24rpx 0;
+}
+.paw {
+  font-size: 38rpx;
+  margin: 0 10rpx;
+}
+.p1 { animation: paw 0.7s ease-in-out infinite; }
+.p2 { animation: paw 0.7s ease-in-out infinite 0.18s; }
+.p3 { animation: paw 0.7s ease-in-out infinite 0.36s; }
+@keyframes paw {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(-12rpx); opacity: 1; }
+}
+
+/* ===== Canvas ===== */
+.canvas-box {
+  margin: 16rpx 30rpx;
+  background: #FFF;
+  border-radius: 16rpx;
+  padding: 16rpx;
+  display: flex;
+  justify-content: center;
+}
+
+/* ===== 结果 ===== */
+.result {
+  margin: 24rpx 30rpx;
+  background: #FFF;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 4rpx 20rpx rgba(255,107,138,0.08);
+}
+.result-img-box {
+  padding: 20rpx;
+  border-radius: 16rpx;
+  border: 2rpx dashed #FFD6E0;
+}
+.result-img {
+  width: 360rpx;
+  height: 360rpx;
+  display: block;
+}
+.result-text {
+  font-size: 24rpx;
+  color: #AAA;
+  margin: 16rpx 0;
+  text-align: center;
+  word-break: break-all;
+  width: 100%;
+}
+.result-btns {
+  display: flex;
+  width: 100%;
+}
+.rbtn {
+  flex: 1;
+  height: 60rpx;
+  border-radius: 30rpx;
+  font-size: 26rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+.rbtn-outline {
+  background: #FFF;
+  color: #FF6B8A;
+  border: 2rpx solid #FFD6E0;
+  margin-right: 14rpx;
+}
+.rbtn-solid {
+  background: linear-gradient(135deg, #FF6B8A, #FF8E9E);
+  color: #FFF;
+}
+
+/* ===== 错误 ===== */
+.err-box {
+  margin: 20rpx 30rpx;
+  display: flex;
+  align-items: center;
+  background: #FFF;
+  border-radius: 16rpx;
+  padding: 22rpx;
+  color: #E54545;
+  font-size: 26rpx;
+  border-left: 6rpx solid #FF6B8A;
+}

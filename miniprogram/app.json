@@ -1,0 +1,18 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/scan/scan",
+    "pages/generate/generate",
+    "pages/example/index"
+  ],
+  "window": {
+    "backgroundColor": "#FFF5F0",
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#FF6B8A",
+    "navigationBarTitleText": "喵喵二维码",
+    "navigationBarTextStyle": "white"
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

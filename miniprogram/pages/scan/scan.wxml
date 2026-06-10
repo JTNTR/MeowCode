@@ -1,0 +1,60 @@
+<!--scan.wxml-->
+<view class="container">
+  <!-- 头部装饰 -->
+  <view class="header-deco">
+    <text class="deco-emoji">{{isBarcode ? '📷' : '📱'}}</text>
+    <view class="page-title">{{isBarcode ? '条形码扫描' : '二维码扫描'}}</view>
+    <view class="page-subtitle">{{isBarcode ? '对准条形码，喵喵帮你识别~' : '对准二维码，喵喵帮你读取~'}}</view>
+  </view>
+
+  <!-- 类型切换 -->
+  <view class="segment">
+    <view class="segment-item {{isBarcode ? 'active' : ''}}" bindtap="onSwitchType" data-type="barcode">
+      <text>📊 条形码</text>
+    </view>
+    <view class="segment-item {{!isBarcode ? 'active' : ''}}" bindtap="onSwitchType" data-type="qrcode">
+      <text>🔳 二维码</text>
+    </view>
+  </view>
+
+  <!-- 扫描区域 -->
+  <view class="scan-area" bindtap="onStartScan">
+    <view class="scan-ring">
+      <view class="scan-ring-inner">
+        <text class="scan-camera">📸</text>
+      </view>
+    </view>
+    <view class="scan-text">点击扫描</view>
+    <view class="scan-hint">支持 {{isBarcode ? '条形码（一维码）' : '二维码（QR Code）'}}</view>
+  </view>
+
+  <!-- 扫描结果 -->
+  <view class="result-area" wx:if="{{scanResult}}">
+    <view class="result-icon">🎉</view>
+    <view class="result-label">扫描成功！</view>
+    <view class="result-text">{{scanResult}}</view>
+    <view class="result-extra" wx:if="{{scanFormat}}">
+      <text class="tag">{{scanFormat}}</text>
+    </view>
+    <view class="result-actions">
+      <button class="btn-sm btn-outline" bindtap="onCopyResult">📋 复制</button>
+      <button class="btn-sm btn-cute-sm" bindtap="onStartScan">🔄 继续扫描</button>
+    </view>
+  </view>
+
+  <!-- 错误 -->
+  <view class="result-area error-area" wx:if="{{scanError}}">
+    <view class="error-icon">😿</view>
+    <view class="error-label">扫描失败</view>
+    <view class="result-text">{{scanError}}</view>
+    <view class="result-actions">
+      <button class="btn-sm btn-cute-sm" bindtap="onStartScan">🔄 重试</button>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-hint" wx:if="{{!scanResult && !scanError}}">
+    <text class="empty-emoji">🐱</text>
+    <text class="empty-text">点击上方相机按钮开始扫描~</text>
+  </view>
+</view>

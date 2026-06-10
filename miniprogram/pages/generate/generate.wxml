@@ -1,0 +1,165 @@
+<!--generate.wxml - 二维码/条形码生成页 -->
+
+<!-- ========== 头部 ========== -->
+<view class="head">
+  <text class="head-icon">🐾</text>
+  <text class="head-title">{{isBarcode ? '条形码生成' : '二维码生成'}}</text>
+  <text class="head-desc">{{isBarcode ? '输入数字编码即可生成条形码' : '输入文字或链接，生成精美二维码'}}</text>
+</view>
+
+<!-- ========== 类型切换 ========== -->
+<view class="tabs">
+  <text class="tab {{isBarcode ? 'on' : ''}}" bindtap="onSwitchType" data-type="barcode">📊 条形码</text>
+  <text class="tab {{!isBarcode ? 'on' : ''}}" bindtap="onSwitchType" data-type="qrcode">🔳 二维码</text>
+</view>
+
+<!-- ========== 输入区 ========== -->
+<view class="card">
+  <view class="card-label">✏️ 输入内容</view>
+  <input
+    class="ipt"
+    type="{{isBarcode ? 'number' : 'text'}}"
+    placeholder="{{isBarcode ? '例如：6901234567890' : '输入文字、网址或数字'}}"
+    value="{{inputText}}"
+    bindinput="onInputChange"
+    maxlength="{{isBarcode ? 30 : 200}}"
+  />
+</view>
+
+<!-- ========== 二维码设置区 ========== -->
+<view wx:if="{{!isBarcode}}">
+
+  <!-- 模块样式 -->
+  <view class="card">
+    <view class="card-label">💎 模块样式</view>
+    <view class="chip-row">
+      <view
+        wx:for="{{moduleStyles}}"
+        wx:key="value"
+        class="chip {{moduleStyleIndex === index ? 'on' : ''}}"
+        bindtap="onModuleStyleChange"
+        data-index="{{index}}"
+      >{{item.icon}} {{item.name}}</view>
+    </view>
+  </view>
+
+  <!-- 颜色主题 -->
+  <view class="card">
+    <view class="card-label">🎨 颜色主题</view>
+    <view class="theme-wrap">
+      <view
+        wx:for="{{colorThemes}}"
+        wx:key="name"
+        class="theme-tag {{colorThemeIndex === index ? 'on' : ''}}"
+        bindtap="onColorThemeChange"
+        data-index="{{index}}"
+      >
+        <view class="dot" style="background:{{item.fg}};"></view>
+        <text>{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 前景色颜料板 -->
+  <view class="card">
+    <view class="card-label">
+      <text>🖌️ 前景色</text>
+      <view class="cur-dot" style="background:{{customFg || colorThemes[colorThemeIndex >= 0 ? colorThemeIndex : 0].fg}};"></view>
+    </view>
+    <view class="swatch-grid">
+      <view
+        wx:for="{{fgPalette}}"
+        wx:key="*this"
+        class="swatch {{customFg === item ? 'on' : ''}}"
+        style="background:{{item}};"
+        bindtap="onFgPick"
+        data-color="{{item}}"
+      >
+        <text wx:if="{{customFg === item}}" class="swatch-ck">✓</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 背景色颜料板 -->
+  <view class="card">
+    <view class="card-label">
+      <text>📋 背景色</text>
+      <view class="cur-dot cur-dot-bg" style="background:{{customBg || colorThemes[colorThemeIndex >= 0 ? colorThemeIndex : 0].bg}};"></view>
+    </view>
+    <view class="swatch-grid">
+      <view
+        wx:for="{{bgPalette}}"
+        wx:key="*this"
+        class="swatch {{customBg === item ? 'on' : ''}}"
+        style="background:{{item}};{{item === '#FFFFFF' ? 'border:2rpx solid #DDD;' : ''}}"
+        bindtap="onBgPick"
+        data-color="{{item}}"
+      >
+        <text wx:if="{{customBg === item}}" class="swatch-ck {{item === '#FFFFFF' || item === '#FFFDE8' || item === '#FFF9C4' ? 'dark' : ''}}">✓</text>
+      </view>
+    </view>
+  </view>
+
+</view>
+
+<!-- ========== 条形码设置区 ========== -->
+<view wx:if="{{isBarcode}}">
+  <view class="card">
+    <view class="card-label">🐈 条码格式</view>
+    <picker mode="selector" range="{{barcodeFormats}}" range-key="name" value="{{barcodeFormatIndex}}" bindchange="onBarcodeFormatChange">
+      <view class="picker-val">{{barcodeFormats[barcodeFormatIndex].name}} ▾</view>
+    </picker>
+  </view>
+  <view class="card">
+    <view class="card-label">🎨 条码颜色</view>
+    <view class="chip-row">
+      <view
+        wx:for="{{barcodeColors}}"
+        wx:key="name"
+        class="chip {{barcodeColorIndex === index ? 'on' : ''}}"
+        bindtap="onBarcodeColorChange"
+        data-index="{{index}}"
+      >
+        <view class="dot" style="background:{{item.fg}};"></view>
+        {{item.name}}
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- ========== 生成按钮 ========== -->
+<button class="gen-btn" bindtap="onGenerate" disabled="{{!inputText}}">
+  <text wx:if="{{!generating}}">✨ {{isBarcode ? '生成条形码' : '生成二维码'}} ✨</text>
+  <text wx:else>⏳ 生成中...</text>
+</button>
+
+<!-- ========== 加载动画 ========== -->
+<view wx:if="{{generating}}" class="loading">
+  <text class="paw p1">🐾</text><text class="paw p2">🐾</text><text class="paw p3">🐾</text>
+</view>
+
+<!-- ========== Canvas 渲染区 ========== -->
+<view wx:if="{{showCanvas}}" class="canvas-box">
+  <canvas type="2d" id="barcodeCanvas" style="width:400px;height:{{canvasHeight}}px;"></canvas>
+</view>
+
+<!-- ========== 结果展示 ========== -->
+<view wx:if="{{imagePath && !showCanvas}}" class="result">
+  <view class="result-img-box" style="background:{{resultBg}};">
+    <image class="result-img" src="{{imagePath}}" mode="aspectFit" show-menu-by-longpress="{{true}}"></image>
+  </view>
+  <view class="result-text">{{inputText}}</view>
+  <view class="result-btns">
+    <button class="rbtn rbtn-outline" bindtap="onSaveImage">💾 保存</button>
+    <button class="rbtn rbtn-solid" bindtap="onShareImage">📤 分享</button>
+  </view>
+</view>
+
+<!-- ========== 错误 ========== -->
+<view wx:if="{{errorMsg}}" class="err-box">
+  <text>😿 {{errorMsg}}</text>
+  <button class="rbtn rbtn-solid" bindtap="onRetry" style="margin-left:20rpx;">重试</button>
+</view>
+
+<!-- 底部留白 -->
+<view style="height:60rpx;"></view>

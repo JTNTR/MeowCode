@@ -1,0 +1,200 @@
+/**app.wxss - 喵喵二维码 可爱卡通主题 **/
+
+/* 页面基础 */
+page {
+  background: #FFF5F0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+  --pink: #FF6B8A;
+  --pink-light: #FFD6E0;
+  --pink-bg: #FFF0F3;
+  --orange: #FFA940;
+  --blue: #69C0FF;
+  --purple: #D3ADF7;
+  --green: #5CDBD3;
+}
+
+/* 容器 */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 30rpx;
+}
+
+/* 页面标题 */
+.page-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8rpx;
+  text-align: center;
+}
+
+.page-subtitle {
+  font-size: 26rpx;
+  color: #BB9A9A;
+  margin-bottom: 30rpx;
+  text-align: center;
+}
+
+/* 分段控制器 */
+.segment {
+  width: 100%;
+  display: flex;
+  background: #FFE8EC;
+  border-radius: 40rpx;
+  padding: 6rpx;
+  margin-bottom: 28rpx;
+  box-shadow: 0 2rpx 10rpx rgba(255,107,138,0.08);
+}
+
+.segment-item {
+  flex: 1;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 36rpx;
+  font-size: 28rpx;
+  color: #CC8A9A;
+  transition: all 0.25s;
+  font-weight: 500;
+}
+
+.segment-item.active {
+  background: #FFF;
+  color: #FF6B8A;
+  font-weight: 600;
+  box-shadow: 0 4rpx 16rpx rgba(255,107,138,0.15);
+}
+
+/* 表单 */
+.form-group {
+  width: 100%;
+  margin-bottom: 24rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 12rpx;
+  display: block;
+  margin-left: 6rpx;
+}
+
+.form-input {
+  width: 100%;
+  height: 88rpx;
+  background: #FFF;
+  border-radius: 20rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+  border: 2rpx solid #FFE8EC;
+  transition: border-color 0.2s;
+  color: #333;
+}
+
+.form-input:focus {
+  border-color: #FF6B8A;
+}
+
+/* 按钮重置 */
+button {
+  background: initial;
+  padding: 0;
+  margin: 0;
+}
+
+button:focus {
+  outline: 0;
+}
+
+button::after {
+  border: none;
+}
+
+/* 主按钮 */
+.btn-primary {
+  width: 100%;
+  height: 92rpx;
+  background: linear-gradient(135deg, #FF6B8A, #FF8E9E);
+  color: #FFF;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  margin-top: 10rpx;
+  box-shadow: 0 8rpx 28rpx rgba(255,107,138,0.3);
+  transition: all 0.15s;
+}
+
+.btn-primary:active {
+  opacity: 0.85;
+  transform: scale(0.97);
+}
+
+.btn-primary[disabled] {
+  background: #E8E8E8;
+  color: #BBB;
+  box-shadow: none;
+}
+
+/* 结果区域 */
+.result-area {
+  width: 100%;
+  margin-top: 30rpx;
+  background: #FFF;
+  border-radius: 24rpx;
+  padding: 28rpx 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(255,107,138,0.08);
+  animation: fadeInUp 0.35s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 12rpx;
+}
+
+.result-text {
+  font-size: 28rpx;
+  color: #333;
+  word-break: break-all;
+  line-height: 1.6;
+  background: #FFFAFA;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid #FFF0F0;
+}
+
+/* 小按钮通用 */
+.btn-sm {
+  flex: 1;
+  height: 64rpx;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #FFF;
+  color: #666;
+  padding: 0;
+  line-height: 64rpx;
+}
