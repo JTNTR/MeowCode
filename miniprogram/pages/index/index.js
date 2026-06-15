@@ -53,6 +53,17 @@ Page({
     });
   },
 
+  // 星座运势
+  onHoroscope: function () {
+    wx.navigateTo({
+      url: "/pages/horoscope/horoscope",
+      fail: function (err) {
+        console.error("跳转失败:", err);
+        wx.showToast({ title: "跳转失败", icon: "none" });
+      },
+    });
+  },
+
   onShareAppMessage: function () {
     return {
       title: "喵喵二维码 - 扫码识别与生成",

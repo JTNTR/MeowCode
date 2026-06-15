@@ -1,0 +1,423 @@
+/**horoscope.wxss - 喵喵运势样式**/
+page {
+  background-color: #FFF5F0;
+}
+
+.container {
+  padding: 0 30rpx 60rpx;
+  min-height: 100vh;
+}
+
+/* ===== 头部 ===== */
+.hero-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30rpx 0 20rpx;
+}
+
+.hero-icon {
+  font-size: 64rpx;
+  animation: bounce 1.5s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12rpx); }
+}
+
+.hero-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  background: linear-gradient(135deg, #FF6B8A, #D3ADF7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-top: 6rpx;
+  margin-bottom: 6rpx;
+}
+
+.hero-subtitle {
+  font-size: 24rpx;
+  color: #CC9A9A;
+}
+
+/* ===== 星座选择 ===== */
+.sign-section {
+  width: 100%;
+  margin-bottom: 20rpx;
+}
+
+.section-label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #888;
+  margin-bottom: 16rpx;
+  padding-left: 6rpx;
+}
+
+.sign-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  justify-content: space-between;
+}
+
+.sign-item {
+  width: calc(25% - 10rpx);
+  background: #FFF;
+  border-radius: 20rpx;
+  padding: 16rpx 6rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 2rpx solid transparent;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03);
+  transition: all 0.2s;
+}
+
+.sign-emoji {
+  font-size: 38rpx;
+  margin-bottom: 6rpx;
+}
+
+.sign-name {
+  font-size: 20rpx;
+  color: #999;
+  font-weight: 500;
+}
+
+.sign-active {
+  border-color: #FF6B8A;
+  background: linear-gradient(180deg, #FFF5F7, #FFE8EC);
+  box-shadow: 0 4rpx 16rpx rgba(255,107,138,0.12);
+  transform: scale(1.03);
+}
+
+.sign-active .sign-name {
+  color: #FF6B8A;
+  font-weight: 700;
+}
+
+/* ===== 加载动画 ===== */
+.loading-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 0;
+}
+
+.loading-paws {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.paw {
+  font-size: 36rpx;
+  animation: pawBounce 0.8s ease-in-out infinite;
+}
+
+.paw-1 { animation-delay: 0s; }
+.paw-2 { animation-delay: 0.2s; }
+.paw-3 { animation-delay: 0.4s; }
+
+@keyframes pawBounce {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
+  50% { transform: translateY(-16rpx) scale(1.2); opacity: 1; }
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: #CC9A9A;
+}
+
+/* ===== 运势卡片 ===== */
+.fortune-card {
+  width: 100%;
+  background: #FFF;
+  border-radius: 24rpx;
+  box-shadow: 0 6rpx 30rpx rgba(255,107,138,0.08);
+  overflow: hidden;
+}
+
+.card-animate {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- 卡片头部 ---- */
+.card-header {
+  background: linear-gradient(135deg, #FF6B8A, #FF8E9E);
+  padding: 24rpx 28rpx;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.card-sign-emoji {
+  font-size: 56rpx;
+  margin-right: 20rpx;
+}
+
+.card-sign-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.card-sign-name {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #FFF;
+  margin-bottom: 4rpx;
+}
+
+.card-sign-meta {
+  font-size: 20rpx;
+  color: rgba(255,255,255,0.8);
+  line-height: 1.5;
+}
+
+.card-keyword {
+  background: rgba(255,255,255,0.25);
+  border-radius: 20rpx;
+  padding: 8rpx 20rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-keyword text {
+  font-size: 22rpx;
+  color: #FFF;
+  font-weight: 600;
+}
+
+/* ---- 综合运势 ---- */
+.overall-section {
+  padding: 24rpx 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.overall-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #555;
+}
+
+.overall-stars {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+}
+
+.stars-row {
+  display: flex;
+  gap: 4rpx;
+}
+
+.star {
+  font-size: 34rpx;
+}
+
+.star-full,
+.star-half {
+  color: #FFA940;
+}
+
+.star-empty {
+  color: #E8E0D8;
+}
+
+.stars-score {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #FF6B8A;
+}
+
+/* ---- 分隔线 ---- */
+.card-divider {
+  height: 1rpx;
+  background: #FFE8EC;
+  margin: 0 28rpx;
+}
+
+/* ---- 运势明细 ---- */
+.detail-section {
+  padding: 16rpx 28rpx;
+}
+
+.detail-item {
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #FFF5F0;
+  transition: all 0.2s;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-item.expanded {
+  background: #FFFAFA;
+  border-radius: 12rpx;
+  padding: 14rpx 12rpx;
+  margin: 0 -12rpx;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+}
+
+.detail-icon {
+  font-size: 30rpx;
+  margin-right: 14rpx;
+}
+
+.detail-label {
+  flex: 1;
+  font-size: 26rpx;
+  color: #555;
+  font-weight: 500;
+}
+
+.detail-stars {
+  display: flex;
+  gap: 2rpx;
+  margin-right: 12rpx;
+}
+
+.star-sm {
+  font-size: 24rpx;
+}
+
+.star-sm.star-full {
+  color: #FFA940;
+}
+
+.star-sm.star-half {
+  color: #FFD080;
+}
+
+.star-sm.star-empty {
+  color: #E8E0D8;
+}
+
+.detail-arrow {
+  font-size: 20rpx;
+  color: #D5B0B0;
+  transition: transform 0.2s;
+}
+
+.detail-text {
+  margin-top: 14rpx;
+  padding: 16rpx 20rpx;
+  background: #FFF;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: #777;
+  line-height: 1.7;
+  border: 1rpx solid #FFF0F0;
+  animation: fadeInUp 0.25s ease-out;
+}
+
+/* ---- 幸运元素 ---- */
+.lucky-section {
+  padding: 20rpx 28rpx;
+}
+
+.lucky-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #555;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.lucky-row {
+  display: flex;
+  justify-content: space-around;
+}
+
+.lucky-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.lucky-label {
+  font-size: 22rpx;
+  color: #AAA;
+}
+
+.lucky-color-box {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid #FFE8EC;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.08);
+}
+
+.lucky-value {
+  font-size: 24rpx;
+  color: #555;
+  font-weight: 500;
+}
+
+.lucky-number {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #FF6B8A;
+}
+
+/* ---- 每日箴言 ---- */
+.motto-section {
+  padding: 20rpx 36rpx;
+  text-align: center;
+}
+
+.motto-text {
+  font-size: 26rpx;
+  color: #FF6B8A;
+  font-style: italic;
+  line-height: 1.7;
+}
+
+/* ---- 日期 ---- */
+.date-section {
+  padding: 0 28rpx 20rpx;
+  text-align: center;
+}
+
+.date-section text {
+  font-size: 22rpx;
+  color: #DDC0C0;
+}
+
+/* ===== 操作区 ===== */
+.action-section {
+  width: 100%;
+  margin-top: 30rpx;
+}
+
+/* ===== 底部 ===== */
+.footer-tip {
+  width: 100%;
+  text-align: center;
+  padding: 30rpx 0;
+}
+
+.footer-tip text {
+  font-size: 23rpx;
+  color: #DDC0C0;
+}

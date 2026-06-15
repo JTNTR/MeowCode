@@ -3,7 +3,7 @@
     "pages/index/index",
     "pages/scan/scan",
     "pages/generate/generate",
-    "pages/example/index"
+    "pages/horoscope/horoscope"
   ],
   "window": {
     "backgroundColor": "#FFF5F0",

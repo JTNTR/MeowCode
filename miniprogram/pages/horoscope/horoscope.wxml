@@ -1,0 +1,167 @@
+<!--horoscope.wxml - 喵喵运势-->
+<view class="container">
+  <!-- 头部 -->
+  <view class="hero-section">
+    <view class="hero-icon">🔮</view>
+    <view class="hero-title">喵喵运势</view>
+    <view class="hero-subtitle">查看今日星座运势，喵~</view>
+  </view>
+
+  <!-- 星座选择网格 -->
+  <view class="sign-section">
+    <view class="section-label">选择你的星座</view>
+    <view class="sign-grid">
+      <view
+        wx:for="{{signs}}"
+        wx:key="id"
+        class="sign-item {{selectedSignId === item.id ? 'sign-active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="onSelectSign"
+      >
+        <text class="sign-emoji">{{item.emoji}}</text>
+        <text class="sign-name">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-area">
+    <view class="loading-paws">
+      <text class="paw paw-1">🐾</text>
+      <text class="paw paw-2">🐾</text>
+      <text class="paw paw-3">🐾</text>
+    </view>
+    <text class="loading-text">喵星人正在推算运势...</text>
+  </view>
+
+  <!-- 运势卡片 -->
+  <view wx:if="{{fortune && !loading}}" class="fortune-card card-animate">
+    <!-- 卡片头部 -->
+    <view class="card-header">
+      <text class="card-sign-emoji">{{fortune.sign.emoji}}</text>
+      <view class="card-sign-info">
+        <text class="card-sign-name">{{fortune.sign.name}}</text>
+        <text class="card-sign-meta">{{fortune.sign.month[0]}}/{{fortune.sign.month[1]}} - {{fortune.sign.monthEnd[0]}}/{{fortune.sign.monthEnd[1]}} · {{fortune.sign.element}}象星座</text>
+        <text class="card-sign-meta">守护星：{{fortune.sign.ruler}}</text>
+      </view>
+      <view class="card-keyword">
+        <text>{{fortune.keyword}}</text>
+      </view>
+    </view>
+
+    <!-- 综合运势 -->
+    <view class="overall-section">
+      <text class="overall-label">今日综合运势</text>
+      <view class="overall-stars">
+        <view class="stars-row">
+          <text wx:for="{{fortune.starsArray}}" wx:key="index" class="star star-{{item}}">★</text>
+        </view>
+        <text class="stars-score">{{fortune.overall}}</text>
+      </view>
+    </view>
+
+    <view class="card-divider"></view>
+
+    <!-- 各维度运势 -->
+    <view class="detail-section">
+      <view class="detail-item {{expanded.love ? 'expanded' : ''}}" bindtap="onToggleDetail" data-key="love">
+        <view class="detail-row">
+          <text class="detail-icon">💕</text>
+          <text class="detail-label">爱情运势</text>
+          <view class="detail-stars">
+            <text wx:for="{{fortune.scoreStars.love}}" wx:key="index" class="star-sm star-{{item}}">★</text>
+          </view>
+          <text class="detail-arrow">{{expanded.love ? '▲' : '▼'}}</text>
+        </view>
+        <view wx:if="{{expanded.love}}" class="detail-text">{{fortune.texts.love}}</view>
+      </view>
+      <view class="detail-item {{expanded.career ? 'expanded' : ''}}" bindtap="onToggleDetail" data-key="career">
+        <view class="detail-row">
+          <text class="detail-icon">💼</text>
+          <text class="detail-label">事业学业</text>
+          <view class="detail-stars">
+            <text wx:for="{{fortune.scoreStars.career}}" wx:key="index" class="star-sm star-{{item}}">★</text>
+          </view>
+          <text class="detail-arrow">{{expanded.career ? '▲' : '▼'}}</text>
+        </view>
+        <view wx:if="{{expanded.career}}" class="detail-text">{{fortune.texts.career}}</view>
+      </view>
+      <view class="detail-item {{expanded.health ? 'expanded' : ''}}" bindtap="onToggleDetail" data-key="health">
+        <view class="detail-row">
+          <text class="detail-icon">🏥</text>
+          <text class="detail-label">健康运势</text>
+          <view class="detail-stars">
+            <text wx:for="{{fortune.scoreStars.health}}" wx:key="index" class="star-sm star-{{item}}">★</text>
+          </view>
+          <text class="detail-arrow">{{expanded.health ? '▲' : '▼'}}</text>
+        </view>
+        <view wx:if="{{expanded.health}}" class="detail-text">{{fortune.texts.health}}</view>
+      </view>
+      <view class="detail-item {{expanded.wealth ? 'expanded' : ''}}" bindtap="onToggleDetail" data-key="wealth">
+        <view class="detail-row">
+          <text class="detail-icon">💰</text>
+          <text class="detail-label">财运运势</text>
+          <view class="detail-stars">
+            <text wx:for="{{fortune.scoreStars.wealth}}" wx:key="index" class="star-sm star-{{item}}">★</text>
+          </view>
+          <text class="detail-arrow">{{expanded.wealth ? '▲' : '▼'}}</text>
+        </view>
+        <view wx:if="{{expanded.wealth}}" class="detail-text">{{fortune.texts.wealth}}</view>
+      </view>
+    </view>
+
+    <view class="card-divider"></view>
+
+    <!-- 幸运元素 -->
+    <view class="lucky-section">
+      <text class="lucky-title">🍀 今日幸运元素</text>
+      <view class="lucky-row">
+        <view class="lucky-item">
+          <text class="lucky-label">幸运色</text>
+          <view class="lucky-color-box" style="background:{{fortune.lucky.color.hex}};"></view>
+          <text class="lucky-value">{{fortune.lucky.color.name}}</text>
+        </view>
+        <view class="lucky-item">
+          <text class="lucky-label">幸运数字</text>
+          <text class="lucky-value lucky-number">{{fortune.lucky.number}}</text>
+        </view>
+        <view class="lucky-item">
+          <text class="lucky-label">幸运方位</text>
+          <text class="lucky-value">{{fortune.lucky.direction}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card-divider"></view>
+
+    <!-- 每日箴言 -->
+    <view class="motto-section">
+      <text class="motto-text">「{{fortune.motto}}」</text>
+    </view>
+
+    <!-- 日期 -->
+    <view class="date-section">
+      <text>{{fortune.date}} {{fortune.weekDay}}</text>
+    </view>
+  </view>
+
+  <!-- 导出按钮 -->
+  <view wx:if="{{fortune && !loading}}" class="action-section">
+    <button class="btn-primary" bindtap="onExportImage" loading="{{exporting}}" disabled="{{exporting}}">
+      {{exporting ? '正在生成并保存...' : '📸 导出运势图片'}}
+    </button>
+  </view>
+
+  <!-- 隐藏的Canvas -->
+  <canvas
+    wx:if="{{showCanvas}}"
+    type="2d"
+    id="fortuneCanvas"
+    style="position:fixed;left:-9999px;top:-9999px;width:400px;height:1200px;"
+  ></canvas>
+
+  <!-- 底部 -->
+  <view class="footer-tip">
+    <text>🐈 仅供娱乐，愿你每天都开心快乐 ✨</text>
+  </view>
+</view>

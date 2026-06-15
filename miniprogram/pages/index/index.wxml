@@ -14,67 +14,56 @@
     </view>
   </view>
 
-  <!-- 功能卡片 -->
-  <view class="card-list">
+  <!-- 功能卡片网格 -->
+  <view class="card-grid">
     <!-- 条形码扫描 -->
     <view class="card card-pink" bindtap="onScanBarcode">
-      <view class="card-left">
-        <view class="card-icon-box icon-scan">
-          <text class="card-emoji">📷</text>
-        </view>
-        <view class="card-info">
-          <view class="card-title">条形码扫描</view>
-          <view class="card-desc">扫描商品条形码，快速识别</view>
-        </view>
+      <view class="card-icon-box icon-scan">
+        <text class="card-emoji">📷</text>
       </view>
-      <text class="card-arrow">🐾</text>
+      <view class="card-title">条形码扫描</view>
+      <view class="card-desc">扫描商品条码</view>
     </view>
 
     <!-- 二维码扫描 -->
     <view class="card card-blue" bindtap="onScanQRCode">
-      <view class="card-left">
-        <view class="card-icon-box icon-qrscan">
-          <text class="card-emoji">📱</text>
-        </view>
-        <view class="card-info">
-          <view class="card-title">二维码扫描</view>
-          <view class="card-desc">扫描二维码，读取隐藏信息</view>
-        </view>
+      <view class="card-icon-box icon-qrscan">
+        <text class="card-emoji">📱</text>
       </view>
-      <text class="card-arrow">🐾</text>
+      <view class="card-title">二维码扫描</view>
+      <view class="card-desc">读取隐藏信息</view>
     </view>
 
     <!-- 条形码生成 -->
     <view class="card card-orange" bindtap="onGenBarcode">
-      <view class="card-left">
-        <view class="card-icon-box icon-genbar">
-          <text class="card-emoji">📊</text>
-        </view>
-        <view class="card-info">
-          <view class="card-title">条形码生成</view>
-          <view class="card-desc">输入数字，一键生成条形码</view>
-        </view>
+      <view class="card-icon-box icon-genbar">
+        <text class="card-emoji">📊</text>
       </view>
-      <text class="card-arrow">🐾</text>
+      <view class="card-title">条形码生成</view>
+      <view class="card-desc">输入数字生成</view>
     </view>
 
     <!-- 二维码生成 -->
     <view class="card card-purple" bindtap="onGenQRCode">
-      <view class="card-left">
-        <view class="card-icon-box icon-genqr">
-          <text class="card-emoji">🔳</text>
-        </view>
-        <view class="card-info">
-          <view class="card-title">二维码生成</view>
-          <view class="card-desc">输入文字/链接，生成二维码</view>
-        </view>
+      <view class="card-icon-box icon-genqr">
+        <text class="card-emoji">🔳</text>
       </view>
-      <text class="card-arrow">🐾</text>
+      <view class="card-title">二维码生成</view>
+      <view class="card-desc">文字/链接生成</view>
+    </view>
+
+    <!-- 星座运势 -->
+    <view class="card card-teal" bindtap="onHoroscope">
+      <view class="card-icon-box icon-horoscope">
+        <text class="card-emoji">🔮</text>
+      </view>
+      <view class="card-title">星座运势</view>
+      <view class="card-desc">今日运势导出</view>
     </view>
   </view>
 
   <!-- 底部提示 -->
   <view class="footer-tip">
-    <text>🐈 选择上方功能开始使用吧~</text>
+    <text>🐈 更多功能即将上线~</text>
   </view>
 </view>
