@@ -64,6 +64,39 @@ Page({
     });
   },
 
+  // 小红书去水印
+  onXhsWatermark: function () {
+    wx.navigateTo({
+      url: "/pages/watermark/watermark?platform=xiaohongshu",
+      fail: function (err) {
+        console.error("跳转失败:", err);
+        wx.showToast({ title: "跳转失败", icon: "none" });
+      },
+    });
+  },
+
+  // 抖音去水印
+  onDyWatermark: function () {
+    wx.navigateTo({
+      url: "/pages/watermark/watermark?platform=douyin",
+      fail: function (err) {
+        console.error("跳转失败:", err);
+        wx.showToast({ title: "跳转失败", icon: "none" });
+      },
+    });
+  },
+
+  // 游戏中心
+  onGameCenter: function () {
+    wx.navigateTo({
+      url: "/pages/game/game",
+      fail: function (err) {
+        console.error("跳转失败:", err);
+        wx.showToast({ title: "跳转失败", icon: "none" });
+      },
+    });
+  },
+
   onShareAppMessage: function () {
     return {
       title: "喵喵二维码 - 扫码识别与生成",

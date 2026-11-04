@@ -3,7 +3,10 @@
     "pages/index/index",
     "pages/scan/scan",
     "pages/generate/generate",
-    "pages/horoscope/horoscope"
+    "pages/horoscope/horoscope",
+    "pages/watermark/watermark",
+    "pages/game/game",
+    "pages/cube/cube"
   ],
   "window": {
     "backgroundColor": "#FFF5F0",

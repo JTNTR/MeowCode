@@ -1,0 +1,235 @@
+<!--pages/cube/cube.wxml-->
+<view class="page">
+  <!-- 顶部：魔方类型 -->
+  <scroll-view class="type-bar" scroll-x="true" enhanced="{{true}}" show-scrollbar="{{false}}">
+    <view class="type-list">
+      <view
+        class="type-chip {{typeIndex === index ? 'active' : ''}}"
+        wx:for="{{types}}"
+        wx:key="key"
+        data-index="{{index}}"
+        bindtap="onSwitchType"
+      >{{item.label}}</view>
+    </view>
+  </scroll-view>
+
+  <!-- 3D 画布 -->
+  <view class="stage">
+    <canvas
+      type="2d"
+      id="cubeCanvas"
+      class="cube-canvas"
+      disable-scroll="{{true}}"
+      bindtouchstart="onTouchStart"
+      bindtouchmove="onTouchMove"
+      bindtouchend="onTouchEnd"
+      bindtouchcancel="onTouchEnd"
+    ></canvas>
+
+    <view class="stage-badge {{solved ? 'ok' : ''}} {{scrambling || resetting ? 'busy' : ''}}">
+      <text>{{scrambling ? '🎲 正在打乱…' : (resetting ? '↩️ 正在复位…' : (solved ? '✅ 已复原' : '🎲 已打乱'))}}</text>
+    </view>
+
+    <view class="stage-hint">
+      <text>{{mirrorTip || '贴纸拖动 = 转层 · 空白拖动 = 转视角'}}</text>
+    </view>
+  </view>
+
+  <!-- 主操作 -->
+  <view class="action-row">
+    <view class="action-btn {{busy ? 'disabled' : ''}}" bindtap="onScramble">
+      <text class="action-emoji">🎲</text>
+      <text class="action-label">{{scrambling ? '打乱中…' : '随机打乱'}}</text>
+    </view>
+    <view class="action-btn {{busy ? 'disabled' : ''}}" bindtap="onReset">
+      <text class="action-emoji">↩️</text>
+      <text class="action-label">{{resetting ? '复位中…' : '复位'}}</text>
+    </view>
+    <view class="action-btn" bindtap="onUndo">
+      <text class="action-emoji">⟲</text>
+      <text class="action-label">撤销</text>
+    </view>
+    <view class="action-btn" bindtap="onResetView">
+      <text class="action-emoji">👁️</text>
+      <text class="action-label">视角</text>
+    </view>
+    <view class="action-btn" bindtap="onHelp">
+      <text class="action-emoji">❓</text>
+      <text class="action-label">玩法</text>
+    </view>
+  </view>
+
+  <!-- 转法切换 -->
+  <view class="mode-row">
+    <text class="mode-label">转法</text>
+    <view class="mode-seg">
+      <view
+        class="mode-item {{turnMode === 'face' ? 'active' : ''}}"
+        data-mode="face"
+        bindtap="onTurnMode"
+      >整面</view>
+      <view
+        class="mode-item {{turnMode === 'slice' ? 'active' : ''}}"
+        data-mode="slice"
+        bindtap="onTurnMode"
+      >单层</view>
+    </view>
+    <text class="mode-tip">{{turnMode === 'face' ? '按住哪面转哪面' : '按住哪行转哪行'}}</text>
+  </view>
+
+  <!-- 教程开关 -->
+  <view class="tutorial-head">
+    <view class="tutorial-title">
+      <text>🧩 复原教程</text>
+      <text class="tutorial-sub">层先法 · 七步</text>
+    </view>
+    <switch
+      class="tutorial-switch"
+      checked="{{tutorialOn}}"
+      bindchange="onToggleTutorial"
+      color="#FF6B8A"
+    />
+  </view>
+
+  <!-- 教程内容 -->
+  <view class="tutorial-body" wx:if="{{tutorialOn}}">
+    <!-- 非 3 阶 -->
+    <view class="tut-empty" wx:if="{{!tutorialSupported}}">
+      <text class="tut-empty-title">当前魔方暂不支持教程</text>
+      <text class="tut-empty-desc">教程基于层先法，只适用于 3 阶魔方和镜面魔方。\n其他阶数可以自由转动练习，熟练后再回到 3 阶学公式。</text>
+    </view>
+
+    <!-- 已复原 -->
+    <view class="tut-empty tut-done" wx:elif="{{tutorialDone}}">
+      <text class="tut-empty-title">🎉 魔方已复原</text>
+      <text class="tut-empty-desc">点「随机打乱」再来一局，或复位后自己练习。</text>
+    </view>
+
+    <!-- 生成失败 -->
+    <view class="tut-empty tut-error" wx:elif="{{tutorialError}}">
+      <text class="tut-empty-title">暂时无法生成步骤</text>
+      <text class="tut-empty-desc">{{tutorialError}}</text>
+      <view class="tut-btn" bindtap="onReplanTutorial">重新生成</view>
+    </view>
+
+    <!-- 未生成 -->
+    <view class="tut-empty" wx:elif="{{!tutorialReady}}">
+      <text class="tut-empty-title">跟着七步，任何人都能复原</text>
+      <text class="tut-empty-desc">先点「随机打乱」，再生成针对当前魔方的专属步骤，每一步都有公式和讲解。</text>
+      <view class="tut-btn" bindtap="onStartTutorial">生成复原步骤</view>
+    </view>
+
+    <!-- 教程进行中 -->
+    <block wx:else>
+      <!-- 阶段进度条 -->
+      <scroll-view class="stage-chips" scroll-x="true" enhanced="{{true}}" show-scrollbar="{{false}}">
+        <view class="stage-chips-inner">
+          <view
+            class="stage-chip {{currentStep.stageId === item.id ? 'active' : ''}} {{item.done ? 'passed' : ''}}"
+            wx:for="{{stageChips}}"
+            wx:key="id"
+            data-from="{{item.from}}"
+            bindtap="onJumpStage"
+          >
+            <text class="stage-no">{{index + 1}}</text>
+            <text class="stage-name">{{item.name}}</text>
+            <text class="stage-count">{{item.count}}</text>
+          </view>
+        </view>
+      </scroll-view>
+
+      <!-- 教学说明（阶段目标 / 观察 / 做法） -->
+      <view class="guide-toggle" bindtap="onToggleGuide" wx:if="{{currentGuide}}">
+        <text>{{showGuide ? '收起讲解 ▲' : '看看这一步在做什么 ▼'}}</text>
+      </view>
+      <view class="guide-card" wx:if="{{showGuide && currentGuide}}">
+        <view class="guide-row">
+          <text class="guide-key">目标</text>
+          <text class="guide-val">{{currentGuide.goal}}</text>
+        </view>
+        <view class="guide-row">
+          <text class="guide-key">观察</text>
+          <text class="guide-val">{{currentGuide.look}}</text>
+        </view>
+        <view class="guide-row">
+          <text class="guide-key">做法</text>
+          <text class="guide-val">{{currentGuide.how}}</text>
+        </view>
+        <view class="guide-row">
+          <text class="guide-key">检查</text>
+          <text class="guide-val">{{currentGuide.check}}</text>
+        </view>
+      </view>
+
+      <!-- 当前步骤 -->
+      <view class="step-card" wx:if="{{currentStep}}">
+        <view class="step-top">
+          <text class="step-stage">第 {{currentStep.stageId + 1}} 步 · {{currentStep.stageName}}</text>
+          <text class="step-progress">{{stepIndex + 1}} / {{totalSteps}}</text>
+        </view>
+
+        <view class="step-alg-box" wx:if="{{currentStep.alg}}">
+          <view class="step-alg">
+            <text
+              class="alg-token {{item2.cls}}"
+              wx:for="{{stepTokens}}"
+              wx:for-item="item2"
+              wx:key="key"
+            >{{item2.text}}</text>
+          </view>
+        </view>
+        <view class="step-alg-none" wx:else>
+          <text>这一步只需观察，不用转动</text>
+        </view>
+
+        <view class="step-note">{{currentStep.note}}</view>
+
+        <!-- 引导方式：跟着做 / 自己转 -->
+        <view class="guide-mode">
+          <view
+            class="gm-item {{guideMode === 'auto' ? 'active' : ''}}"
+            data-mode="auto"
+            bindtap="onGuideMode"
+          >🎬 跟着做</view>
+          <view
+            class="gm-item {{guideMode === 'manual' ? 'active' : ''}}"
+            data-mode="manual"
+            bindtap="onGuideMode"
+          >🙋 我自己转</view>
+        </view>
+
+        <view class="step-actions" wx:if="{{guideMode === 'auto'}}">
+          <view class="btn-ghost {{stepIndex === 0 ? 'disabled' : ''}}" bindtap="onPrevStep">上一步</view>
+          <view class="btn-main btn-main-wide {{busy ? 'disabled' : ''}}" bindtap="onApplyStep">
+            {{busy ? '转动中…' : (currentStep.alg ? '执行这一步' : '继续')}}
+          </view>
+        </view>
+
+        <view class="step-actions" wx:else>
+          <view class="btn-ghost" bindtap="onReplanTutorial">🔄 我转乱了</view>
+          <view class="btn-main" bindtap="onNextStep">我转好了 ✓</view>
+        </view>
+
+        <view class="step-actions-secondary">
+          <view class="btn-sub" bindtap="onApplyStage">▶ 直接完成本阶段</view>
+          <view class="btn-sub" bindtap="onReplanTutorial">↻ 重新生成步骤</view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 玩法弹窗 -->
+  <view class="mask" wx:if="{{showHelp}}" bindtap="onCloseHelp">
+    <view class="sheet" catchtap="onNoop">
+      <view class="sheet-handle"></view>
+      <view class="sheet-title">玩法说明</view>
+      <scroll-view class="sheet-scroll" scroll-y="true">
+        <view class="help-block" wx:for="{{helpSections}}" wx:key="title">
+          <view class="help-title">{{item.title}}</view>
+          <view class="help-body">{{item.body}}</view>
+        </view>
+      </scroll-view>
+      <view class="sheet-close" bindtap="onCloseHelp">知道啦</view>
+    </view>
+  </view>
+</view>

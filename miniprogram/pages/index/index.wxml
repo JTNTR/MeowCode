@@ -60,6 +60,33 @@
       <view class="card-title">星座运势</view>
       <view class="card-desc">今日运势导出</view>
     </view>
+
+    <!-- 小红书去水印 -->
+    <view class="card card-red" bindtap="onXhsWatermark">
+      <view class="card-icon-box icon-xhs">
+        <text class="card-emoji">📕</text>
+      </view>
+      <view class="card-title">小红书去水印</view>
+      <view class="card-desc">提取无水印图片</view>
+    </view>
+
+    <!-- 抖音去水印 -->
+    <view class="card card-cyan" bindtap="onDyWatermark">
+      <view class="card-icon-box icon-dy">
+        <text class="card-emoji">🎵</text>
+      </view>
+      <view class="card-title">抖音去水印</view>
+      <view class="card-desc">提取无水印图片</view>
+    </view>
+
+    <!-- 游戏中心 -->
+    <view class="card card-green" bindtap="onGameCenter">
+      <view class="card-icon-box icon-game">
+        <text class="card-emoji">🎮</text>
+      </view>
+      <view class="card-title">游戏中心</view>
+      <view class="card-desc">3D 魔方等你玩</view>
+    </view>
   </view>
 
   <!-- 底部提示 -->

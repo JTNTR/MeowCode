@@ -1,0 +1,52 @@
+<!--pages/game/game.wxml-->
+<view class="container">
+  <!-- 头部 -->
+  <view class="hero">
+    <text class="hero-emoji">🎮</text>
+    <view class="hero-title">游戏中心</view>
+    <view class="hero-subtitle">摸鱼小游戏 · 动动手指放松一下</view>
+  </view>
+
+  <!-- 可玩 -->
+  <view class="section-label">
+    <text class="dot"></text>
+    <text>可以玩</text>
+  </view>
+
+  <view
+    class="game-card {{item.color}}"
+    wx:for="{{games}}"
+    wx:key="id"
+    bindtap="onOpenGame"
+    data-url="{{item.url}}"
+  >
+    <view class="game-icon-box {{item.icon}}">
+      <text class="game-emoji">{{item.emoji}}</text>
+    </view>
+    <view class="game-info">
+      <view class="game-title">{{item.title}}</view>
+      <view class="game-desc">{{item.desc}}</view>
+    </view>
+    <view class="game-arrow">›</view>
+  </view>
+
+  <!-- 敬请期待 -->
+  <view class="section-label section-label-muted">
+    <text class="dot dot-muted"></text>
+    <text>敬请期待</text>
+  </view>
+
+  <view class="soon-grid">
+    <view class="soon-card {{item.color}}" wx:for="{{soon}}" wx:key="title">
+      <view class="soon-icon-box {{item.icon}}">
+        <text class="soon-emoji">{{item.emoji}}</text>
+      </view>
+      <view class="soon-title">{{item.title}}</view>
+      <view class="soon-desc">{{item.desc}}</view>
+    </view>
+  </view>
+
+  <view class="footer-tip">
+    <text>🐈 想玩什么？留言告诉我们~</text>
+  </view>
+</view>

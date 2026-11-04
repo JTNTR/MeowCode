@@ -120,6 +120,9 @@ page {
 .card-orange { border-top-color: #FFA940; }
 .card-purple { border-top-color: #D3ADF7; }
 .card-teal { border-top-color: #5CDBD3; }
+.card-red { border-top-color: #FF2442; }
+.card-cyan { border-top-color: #00D4CC; }
+.card-green { border-top-color: #52C41A; }
 
 .card-icon-box {
   width: 100rpx;
@@ -136,6 +139,9 @@ page {
 .icon-genbar { background: linear-gradient(135deg, #FFF7E6, #FFE7BA); }
 .icon-genqr { background: linear-gradient(135deg, #F9F0FF, #EFDBFF); }
 .icon-horoscope { background: linear-gradient(135deg, #E6FFFA, #C1F0E8); }
+.icon-xhs { background: linear-gradient(135deg, #FFE8EC, #FFCDD5); }
+.icon-dy { background: linear-gradient(135deg, #E0FFFE, #B5F5F0); }
+.icon-game { background: linear-gradient(135deg, #F6FFED, #D9F7BE); }
 
 .card-emoji {
   font-size: 48rpx;

@@ -1,0 +1,147 @@
+<!--pages/watermark/watermark.wxml-->
+<view class="container">
+  <!-- Hero 区 -->
+  <view class="hero">
+    <text class="hero-emoji">{{platform === 'xiaohongshu' ? '📕' : '🎵'}}</text>
+    <view class="hero-title">无水印提取</view>
+    <view class="hero-subtitle">
+      {{platform === 'xiaohongshu' ? '小红书图片 · 一键去水印' : '抖音图文/视频 · 一键去水印'}}
+    </view>
+  </view>
+
+  <!-- Segment 切换控件 -->
+  <view class="segment">
+    <view
+      class="segment-item {{platform === 'xiaohongshu' ? 'active' : ''}}"
+      bindtap="onSwitchPlatform"
+      data-platform="xiaohongshu"
+    >
+      <text>📕 小红书</text>
+    </view>
+    <view
+      class="segment-item {{platform === 'douyin' ? 'active' : ''}}"
+      bindtap="onSwitchPlatform"
+      data-platform="douyin"
+    >
+      <text>🎵 抖音</text>
+    </view>
+  </view>
+
+  <!-- 输入区 -->
+  <view class="input-card">
+    <view class="input-row">
+      <textarea
+        class="url-input"
+        value="{{inputText}}"
+        placeholder="{{platform === 'xiaohongshu' ? '直接粘贴小红书的分享文案，自动识别链接...' : '直接粘贴抖音的分享文案，自动识别链接...'}}"
+        placeholder-class="input-placeholder"
+        bindinput="onInputText"
+        auto-height="{{true}}"
+        maxlength="-1"
+        show-confirm-bar="{{false}}"
+      />
+    </view>
+    <view class="input-actions">
+      <view class="btn-paste" bindtap="onPaste">
+        <text>📋 粘贴</text>
+      </view>
+      <view class="btn-clear" wx:if="{{inputText}}" bindtap="onClear">
+        <text>✕ 清空</text>
+      </view>
+      <view
+        class="btn-parse {{inputText ? 'btn-parse-active' : ''}}"
+        bindtap="onParse"
+      >
+        <text>{{loading ? '解析中...' : '🔍 解析'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载动画 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <view class="paw-row">
+      <text class="paw paw-1">🐾</text>
+      <text class="paw paw-2">🐾</text>
+      <text class="paw paw-3">🐾</text>
+    </view>
+    <view class="loading-text">正在解析链接...</view>
+  </view>
+
+  <!-- 错误提示 -->
+  <view class="error-area" wx:if="{{error && !loading}}">
+    <view class="error-icon">😿</view>
+    <view class="error-text">{{error}}</view>
+    <view class="btn-retry" bindtap="onParse">
+      <text>🔄 重试</text>
+    </view>
+  </view>
+
+  <!-- 结果卡片 -->
+  <view class="result-card" wx:if="{{result && !loading}}">
+    <!-- 标题和作者 -->
+    <view class="result-header">
+      <view class="result-title">{{result.title || '无标题'}}</view>
+      <view class="result-author" wx:if="{{result.author}}">
+        <text>@{{result.author}}</text>
+      </view>
+    </view>
+
+    <!-- 视频链接提示 -->
+    <view class="video-tip" wx:if="{{result.videoUrl && !result.images.length}}">
+      <text>🎬 视频链接已解析</text>
+      <view class="video-url-text">{{result.videoUrl}}</view>
+      <text class="video-note">视频文件较大，建议复制链接后使用其他工具下载</text>
+    </view>
+
+    <!-- 图片网格 -->
+    <view class="image-grid" wx:if="{{result.images && result.images.length}}">
+      <view
+        class="image-cell"
+        wx:for="{{result.images}}"
+        wx:key="index"
+        bindtap="onPreviewImage"
+        data-index="{{index}}"
+      >
+        <image
+          class="image-thumb"
+          src="{{item}}"
+          mode="aspectFill"
+          lazy-load="{{true}}"
+        ></image>
+        <view class="image-index">{{index + 1}}</view>
+        <view
+          class="image-save-btn"
+          catchtap="onSaveImage"
+          data-index="{{index}}"
+        >
+          <text>💾</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="result-actions" wx:if="{{result.images && result.images.length}}">
+      <view
+        class="btn-save-all {{savingAll ? 'btn-saving' : ''}}"
+        bindtap="onSaveAll"
+      >
+        <text>{{savingAll ? '保存中 ' + saveProgress.current + '/' + saveProgress.total : '💾 保存全部 (' + result.images.length + '张)'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 链接格式提示 -->
+  <view class="tips-card">
+    <view class="tips-title">💡 使用提示</view>
+    <view class="tips-content">
+      <text>• 直接粘贴{{platform === 'xiaohongshu' ? '小红书' : '抖音'}}的分享文案\n</text>
+      <text>• 无需手动提取链接，程序自动识别\n</text>
+      <text>• 支持图文和视频作品</text>
+    </view>
+  </view>
+
+  <!-- 页脚 -->
+  <view class="footer">
+    <text>🐱 喵喵二维码 · 无水印提取</text>
+  </view>
+</view>

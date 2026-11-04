@@ -1,0 +1,9 @@
+{
+  "name": "watermarkParser",
+  "version": "1.0.0",
+  "description": "Watermark-free media extraction from Xiaohongshu and Douyin",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.4.0"
+  }
+}
