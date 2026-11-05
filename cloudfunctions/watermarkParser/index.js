@@ -17,6 +17,9 @@ const cloud = require("wx-server-sdk");
 const https = require("https");
 const http = require("http");
 const zlib = require("zlib");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
@@ -29,11 +32,18 @@ var UA_MOBILE =
 // 抖音只对「搜索引擎爬虫」吐出 SSR 数据，改名会立刻退化成 JS 空壳
 var UA_SPIDER =
   "Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)";
+// 小红书视频笔记在没有 xsec_token 时会让普通 UA 跳到 /404（移动端）或 /login（PC 端），
+// 只有 Googlebot / 搜狗爬虫能拿到旧版 note.noteDetailMap 的 SSR。
+// 注意：Baiduspider 和 bingbot 在小红书上只会拿到 10KB 空壳，别混用。
+var UA_GOOGLEBOT =
+  "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 
 var REQ_TIMEOUT = 12000;
 var MAX_REDIRECTS = 8;
 // callFunction 返回体积有限，单张图片上限 5MB
 var MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// 视频走云函数中转，但要先落盘再 uploadFile（见 uploadVideoToCloud 里的说明）
+var MAX_VIDEO_BYTES = 48 * 1024 * 1024;
 
 // ==================== HTTP 请求工具 ====================
 
@@ -546,6 +556,59 @@ function xhsImagesFromHtml(html) {
 }
 
 /**
+ * 从笔记数据里取无水印视频流地址。
+ *
+ * 2026-11 实测：视频笔记的 `note.video.media.stream` 结构是
+ *   { h264:[{ masterUrl, backupUrls, width, height, size, qualityType }], h265:[], h266:[], av1:[] }
+ * masterUrl 就是官方播放器用的地址，画面上没有水印（水印只在 App 播放器 UI 层）。
+ *
+ * 优先 h264：小程序 <video> 对 h265 支持不稳定，h264 兼容性最好。
+ * 同一编码里取分辨率最高的那条。
+ */
+function extractVideoFromNote(note) {
+  var stream =
+    (note.video && note.video.media && note.video.media.stream) ||
+    (note.video && note.video.media && note.video.media.streams) ||
+    null;
+  if (!stream || typeof stream !== "object") return null;
+
+  var codecs = ["h264", "h265", "av1", "h266"];
+  var best = null;
+
+  for (var c = 0; c < codecs.length; c++) {
+    var list = stream[codecs[c]];
+    if (!Array.isArray(list) || list.length === 0) continue;
+
+    for (var i = 0; i < list.length; i++) {
+      var item = list[i] || {};
+      var url = item.masterUrl || item.master_url || "";
+      if (!url && Array.isArray(item.backupUrls) && item.backupUrls.length) {
+        url = item.backupUrls[0];
+      }
+      if (!url) continue;
+
+      var w = item.width || 0;
+      var h = item.height || 0;
+      if (!best || w * h > best.width * best.height) {
+        best = {
+          url: cleanXhsImageUrl(url), // 同样要做 http->https 和实体还原
+          backupUrls: (item.backupUrls || []).map(cleanXhsImageUrl),
+          width: w,
+          height: h,
+          size: item.size || 0,
+          duration: item.duration || 0,
+          codec: item.videoCodec || codecs[c],
+        };
+      }
+    }
+    // h264 只要有就不再看 h265/av1
+    if (best) break;
+  }
+
+  return best;
+}
+
+/**
  * 解析小红书分享链接
  */
 async function parseXiaohongshu(shareUrl) {
@@ -611,16 +674,24 @@ async function parseXiaohongshu(shareUrl) {
     var fallbacks = [];
     var pageHtml = "";
     var lastError = "";
+    var video = null;
 
     // 2026-11 实测：小红书 PC 网页版不带登录态会 302 到 /login，
     // 只有移动端 UA 才能直接拿到带 __INITIAL_STATE__ 的笔记页。
     // 所以每个候选地址先用移动端 UA 试，拿不到再用 PC UA 兜一次。
-    var pageUAs = [UA_MOBILE, UA_PC];
+    // 视频笔记在移动端 UA 下会被跳到 /404，但 Googlebot 能拿到旧版 SSR —— 见 UA 常量说明。
+    var pageUAs = [UA_MOBILE, UA_PC, UA_GOOGLEBOT];
 
-    for (var ci = 0; ci < candidates.length && images.length === 0; ci++) {
+    // 图文和视频的「有没有拿到内容」判断不同：视频笔记 imageList 只有一张封面，
+    // 所以循环条件不能只看 images.length。
+    function hasContent() {
+      return images.length > 0 || !!video;
+    }
+
+    for (var ci = 0; ci < candidates.length && !hasContent(); ci++) {
       var pageUrl = candidates[ci];
 
-      for (var ui = 0; ui < pageUAs.length && images.length === 0; ui++) {
+      for (var ui = 0; ui < pageUAs.length && !hasContent(); ui++) {
         var html = "";
         var landedUrl = "";
         try {
@@ -654,6 +725,7 @@ async function parseXiaohongshu(shareUrl) {
           var parsedImages = extractImagesFromNote(note);
           images = parsedImages.images;
           fallbacks = parsedImages.fallbacks;
+          video = extractVideoFromNote(note);
           if (note.video && note.video.image) {
             // 视频封面同样优先用 fileId 拼的原图，避开 H5 水印
             var videoImage = note.video.image;
@@ -667,10 +739,20 @@ async function parseXiaohongshu(shareUrl) {
               ) ||
               cover;
           }
+          // 实测 note.video.image 里只有 { thumbnailFileid: "frame/..." }，
+          // 拿不到能直接下载的地址，真正的封面是 note.imageList[0].fileId。
+          if (!cover && note.imageList && note.imageList.length) {
+            var coverImg = note.imageList[0] || {};
+            cover = xhsOriginalUrl(
+              coverImg.fileId ||
+                coverImg.file_id ||
+                xhsFileIdFromUrl(coverImg.urlDefault || coverImg.url || "")
+            );
+          }
         }
 
         // 状态里没拿到就退回正则捞 CDN 地址（这些只能是 H5 水印图）
-        if (images.length === 0) {
+        if (images.length === 0 && !video) {
           images = xhsImagesFromHtml(html);
           fallbacks = images.slice();
         }
@@ -686,6 +768,21 @@ async function parseXiaohongshu(shareUrl) {
         title = unescapeHtml(titleMatch[1]).replace(/[-\s]*小红书[\/\s-]*.*$/, "").trim();
         if (title === "小红书") title = "";
       }
+    }
+
+    // 视频笔记：视频流是主产物，imageList 里那张只是封面，不再当图片返回
+    if (video) {
+      return {
+        success: true,
+        data: {
+          title: title,
+          author: author,
+          isVideo: true,
+          video: video,
+          images: [],
+          cover: cover || video.cover || "",
+        },
+      };
     }
 
     if (xhsImages.length === 0) {
@@ -1115,6 +1212,116 @@ function isRemoteUrl(url) {
   return /^https?:\/\//i.test(url || "");
 }
 
+/**
+ * 视频不能像图片那样整个读进内存再 uploadFile —— 一条 40MB 的流再复制一份
+ * 很容易把云函数 256MB 内存顶爆，而且 cloud.uploadFile 支持传流/路径，
+ * 这里先流式写到 /tmp，再交给 uploadFile，避免内存翻倍。
+ */
+function downloadToFile(url, filePath, opts) {
+  opts = opts || {};
+  return new Promise(function (resolve, reject) {
+    var headers = {
+      "User-Agent": opts.userAgent || UA_PC,
+      Accept: "*/*",
+      Referer: opts.referer || "https://www.xiaohongshu.com/",
+    };
+    var req = https.get(url, { headers: headers, timeout: 30000 }, function (res) {
+      var status = res.statusCode || 0;
+
+      // 跟着跳转走，视频 CDN 有时会 302 到另一个节点
+      if (
+        (status === 301 || status === 302 || status === 303 ||
+          status === 307 || status === 308) &&
+        res.headers.location
+      ) {
+        res.resume();
+        var next;
+        try {
+          next = new URL(res.headers.location, url).href;
+        } catch (e) {
+          next = res.headers.location;
+        }
+        downloadToFile(next, filePath, opts).then(resolve, reject);
+        return;
+      }
+
+      if (status !== 200 && status !== 206) {
+        res.resume();
+        reject(new Error("视频下载失败（HTTP " + status + "）"));
+        return;
+      }
+
+      var out = fs.createWriteStream(filePath);
+      var size = 0;
+      var aborted = false;
+
+      res.on("data", function (chunk) {
+        size += chunk.length;
+        if (size > (opts.maxBytes || MAX_VIDEO_BYTES)) {
+          aborted = true;
+          res.destroy();
+          out.destroy();
+          reject(new Error("视频超过大小上限"));
+          return;
+        }
+        out.write(chunk);
+      });
+      res.on("end", function () {
+        if (aborted) return;
+        out.end(function () {
+          resolve({ bytes: size, contentType: res.headers["content-type"] || "" });
+        });
+      });
+      res.on("error", function (err) {
+        if (aborted) return;
+        out.destroy();
+        reject(err);
+      });
+    });
+
+    req.on("error", reject);
+    req.on("timeout", function () {
+      req.destroy(new Error("视频下载超时"));
+    });
+  });
+}
+
+/**
+ * 把视频转存到云存储，返回 { fileID, bytes }；失败返回 null
+ */
+async function uploadVideoToCloud(videoUrl) {
+  var tmpPath = path.join(
+    os.tmpdir(),
+    "xhs-" + process.pid + "-" + Date.now() + ".mp4"
+  );
+
+  try {
+    var info = await downloadToFile(videoUrl, tmpPath, {
+      referer: "https://www.xiaohongshu.com/",
+      maxBytes: MAX_VIDEO_BYTES,
+    });
+
+    var cloudPath = "watermark/video/" + hashKey(videoUrl) + ".mp4";
+    var up = await cloud.uploadFile({
+      cloudPath: cloudPath,
+      fileContent: fs.createReadStream(tmpPath),
+    });
+
+    if (up && up.fileID) return { fileID: up.fileID, bytes: info.bytes };
+    return null;
+  } catch (e) {
+    // 云函数日志里能看到具体原因（超限 / 403 / 超时），方便排查
+    console.error("视频转存失败:", (e && e.message) || e);
+    return null;
+  } finally {
+    try {
+      fs.unlinkSync(tmpPath);
+    } catch (e2) {
+      // 临时文件清理失败不影响结果
+    }
+  }
+}
+
 // ==================== 主入口 ====================
 
 exports.main = async function (event, context) {
@@ -1147,6 +1354,42 @@ exports.main = async function (event, context) {
     var rawImages = result.data.images || [];
     var fallbackImages = result.data.fallbackImages || [];
     delete result.data.fallbackImages;
+
+    // 视频笔记：只中转视频本身（封面单独中转），不走图片数组那条路
+    if (result.data.isVideo && result.data.video && result.data.video.url) {
+      var videoInfo = result.data.video;
+      var relayedVideo = await uploadVideoToCloud(videoInfo.url);
+
+      if (relayedVideo) {
+        result.data.video = {
+          fileID: relayedVideo.fileID,
+          url: videoInfo.url, // 兜底：小程序端可用 wx.downloadFile 直连（需配合法域名）
+          width: videoInfo.width,
+          height: videoInfo.height,
+          duration: videoInfo.duration,
+          size: relayedVideo.bytes,
+          codec: videoInfo.codec,
+        };
+      } else {
+        // 转存失败也要让页面知道这是视频，而不是「没有结果」
+        result.success = false;
+        result.error = "视频转存失败，可能是视频过大或云端存储权限未开通";
+        result.data.video = {
+          url: videoInfo.url,
+          width: videoInfo.width,
+          height: videoInfo.height,
+          duration: videoInfo.duration,
+          size: videoInfo.size,
+          codec: videoInfo.codec,
+        };
+      }
+
+      if (isRemoteUrl(result.data.cover)) {
+        var videoCoverFileID = await uploadImageToCloud(result.data.cover);
+        if (videoCoverFileID) result.data.cover = videoCoverFileID;
+      }
+      return result;
+    }
 
     if (rawImages.length) {
       var relayed = await toCloudUrls(rawImages, fallbackImages);

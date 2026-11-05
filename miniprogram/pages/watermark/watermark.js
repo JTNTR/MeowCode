@@ -8,6 +8,11 @@ Page({
     result: null, // { title, author, images[], videoUrl, cover }
     error: "",
     savingAll: false,
+    savingVideo: false,
+    // <video> 不能稳定识别 cloud:// fileID，解析成功后换成临时 https 链接
+    videoPlayUrl: "",
+    videoMeta: "",
+    videoPoster: "",
     saveProgress: { current: 0, total: 0 },
   },
 
@@ -34,6 +39,9 @@ Page({
       result: null,
       error: "",
       loading: false,
+      videoPlayUrl: "",
+      videoMeta: "",
+      videoPoster: "",
     });
     this._updateTitle(platform);
   },
@@ -131,7 +139,7 @@ Page({
       return;
     }
 
-    self.setData({ loading: true, error: "", result: null });
+    self.setData({ loading: true, error: "", result: null, videoPlayUrl: "", videoMeta: "", videoPoster: "" });
 
     wx.cloud.callFunction({
       name: "watermarkParser",
@@ -151,6 +159,7 @@ Page({
           result: result.data,
           loading: false,
         });
+        self._resolveVideoUrl(result.data);
       } else {
         self._rawImages =
           (result.data && result.data.rawImages) ||
@@ -163,6 +172,7 @@ Page({
           result: result.data || null,
           loading: false,
         });
+        self._resolveVideoUrl(result.data);
       }
     }).catch(function (err) {
       console.error("云函数调用失败:", err);
@@ -170,10 +180,150 @@ Page({
       self.setData({
         error:
           msg.indexOf("timeout") >= 0 || msg.indexOf("TIME_LIMIT") >= 0
-            ? "解析超时了，请稍后重试（图文作品图片较多时需要多等几秒）"
+            ? "解析超时了，请稍后重试（视频作品要先下载并转存，通常需要 20~40 秒，可再试一次）"
             : "网络请求失败，请检查云开发环境配置或稍后重试",
         loading: false,
       });
+    });
+  },
+
+  // ==================== 视频 ====================
+
+  /**
+   * <video> 组件的 src / poster 对 cloud:// fileID 支持不稳定（基础库、机型差异大），
+   * 统一换成临时 https 链接再喂给播放器。
+   * 没有 fileID（云函数转存失败）时不设播放地址，页面会退回封面 + 错误提示。
+   */
+  _resolveVideoUrl: function (data) {
+    var self = this;
+    var video = data && data.video;
+    if (!video || !video.fileID) return;
+
+    self.setData({ videoMeta: self._videoMeta(video) });
+
+    wx.cloud.getTempFileURL({
+      fileList: [video.fileID],
+      success: function (res) {
+        var url = (res.fileList && res.fileList[0] && res.fileList[0].tempFileURL) || "";
+        self.setData({ videoPlayUrl: url || video.url || "" });
+      },
+      fail: function () {
+        self.setData({ videoPlayUrl: video.url || "" });
+      },
+    });
+
+    // <video> 的 poster 同样不认 cloud:// fileID，封面也换成临时链接；
+    // 换不到就交给 <image> 渲染（<image> 支持 cloud://）
+    var cover = data.cover;
+    if (cover && cover.indexOf("cloud://") === 0) {
+      wx.cloud.getTempFileURL({
+        fileList: [cover],
+        success: function (res) {
+          var u = res.fileList && res.fileList[0] && res.fileList[0].tempFileURL;
+          if (u) self.setData({ videoPoster: u });
+        },
+      });
+    } else {
+      self.setData({ videoPoster: cover || "" });
+    }
+  },
+
+  /**
+   * 拼「时长 · 分辨率 · 体积」一行信息，字段缺失就跳过
+   */
+  _videoMeta: function (video) {
+    var parts = [];
+
+    var ms = video.duration || 0;
+    if (ms > 0) {
+      var total = Math.round(ms / 1000);
+      var m = Math.floor(total / 60);
+      var s = total % 60;
+      parts.push((m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s));
+    }
+
+    if (video.width && video.height) {
+      parts.push(video.width + "×" + video.height);
+    }
+
+    var bytes = video.size || 0;
+    if (bytes > 0) {
+      parts.push((bytes / 1048576).toFixed(1) + "MB");
+    }
+
+    return parts.join(" · ");
+  },
+
+  onSaveVideo: function () {
+    var self = this;
+    var video = self.data.result && self.data.result.video;
+    if (!video) {
+      wx.showToast({ title: "视频地址无效", icon: "none" });
+      return;
+    }
+    if (self.data.savingVideo) return;
+
+    self.setData({ savingVideo: true });
+    wx.showLoading({ title: "保存中...", mask: true });
+
+    function done(err) {
+      wx.hideLoading();
+      self.setData({ savingVideo: false });
+      if (!err) {
+        wx.showToast({ title: "已保存到相册", icon: "success" });
+        return;
+      }
+      console.error("保存视频失败:", err);
+      if (self._isAuthDenied(err)) {
+        self._showAuthModal();
+      } else {
+        wx.showToast({ title: "保存失败，请重试", icon: "none" });
+      }
+    }
+
+    function save(filePath) {
+      wx.saveVideoToPhotosAlbum({
+        filePath: filePath,
+        success: function () {
+          done(null);
+        },
+        fail: function (err) {
+          done(err || new Error("保存失败"));
+        },
+      });
+    }
+
+    // 云存储文件只能通过 wx.cloud.downloadFile 下载，不受合法域名限制
+    if (video.fileID) {
+      wx.cloud.downloadFile({
+        fileID: video.fileID,
+        success: function (res) {
+          if (res.statusCode === 200 && res.tempFilePath) {
+            save(res.tempFilePath);
+          } else {
+            done(new Error("视频下载失败"));
+          }
+        },
+        fail: function (err) {
+          done(err || new Error("视频下载失败"));
+        },
+      });
+      return;
+    }
+
+    // 转存失败时云函数只回了 CDN 地址，直连下载需要配 downloadFile 合法域名
+    wx.downloadFile({
+      url: video.url,
+      success: function (res) {
+        if (res.statusCode === 200 && res.tempFilePath) {
+          save(res.tempFilePath);
+        } else {
+          done(new Error("视频下载失败（" + res.statusCode + "）"));
+        }
+      },
+      fail: function (err) {
+        done(err || new Error("视频下载失败"));
+      },
     });
   },
 

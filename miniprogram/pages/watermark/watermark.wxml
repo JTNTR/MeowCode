@@ -5,7 +5,7 @@
     <text class="hero-emoji">{{platform === 'xiaohongshu' ? '📕' : '🎵'}}</text>
     <view class="hero-title">无水印提取</view>
     <view class="hero-subtitle">
-      {{platform === 'xiaohongshu' ? '小红书图片 · 一键去水印' : '抖音图文/视频 · 一键去水印'}}
+      {{platform === 'xiaohongshu' ? '小红书图文/视频 · 一键去水印' : '抖音图文/视频 · 一键去水印'}}
     </view>
   </view>
 
@@ -86,11 +86,45 @@
       </view>
     </view>
 
-    <!-- 视频作品：只解析出标题和封面 -->
-    <view class="video-tip" wx:if="{{!result.images || !result.images.length}}">
-      <image class="video-cover" wx:if="{{result.cover}}" src="{{result.cover}}" mode="aspectFill"></image>
+    <!-- 视频作品：直接给播放器 + 保存按钮 -->
+    <view class="video-box" wx:if="{{result.isVideo}}">
+      <video
+        class="video-player"
+        wx:if="{{videoPlayUrl}}"
+        src="{{videoPlayUrl}}"
+        poster="{{videoPoster}}"
+        controls="{{true}}"
+        show-center-play-btn="{{true}}"
+        enable-play-gesture="{{true}}"
+        object-fit="contain"
+        show-fullscreen-btn="{{true}}"
+      ></video>
+      <image
+        class="video-cover"
+        wx:elif="{{result.cover}}"
+        src="{{result.cover}}"
+        mode="aspectFill"
+      ></image>
+
+      <view class="video-meta" wx:if="{{videoMeta}}">{{videoMeta}}</view>
+
+      <view class="video-actions" wx:if="{{videoPlayUrl}}">
+        <view
+          class="btn-save-all {{savingVideo ? 'btn-saving' : ''}}"
+          bindtap="onSaveVideo"
+        >
+          <text>{{savingVideo ? '保存中...' : '⬇️ 保存视频到相册'}}</text>
+        </view>
+      </view>
+
+      <view class="video-note" wx:if="{{error}}">{{error}}</view>
+    </view>
+
+    <!-- 旧版「只拿到封面」兜底：视频地址没解析出来时不要空白 -->
+    <view class="video-tip" wx:elif="{{result.cover && (!result.images || !result.images.length)}}">
+      <image class="video-cover" src="{{result.cover}}" mode="aspectFill"></image>
       <text>🎬 这是视频作品</text>
-      <text class="video-note">目前只支持提取图文作品的图片，视频作品暂时只能解析出标题和封面</text>
+      <text class="video-note">视频地址未能解析出来，暂时只能提供封面</text>
     </view>
 
     <!-- 图片网格 -->
@@ -136,7 +170,7 @@
     <view class="tips-content">
       <text>• 直接粘贴{{platform === 'xiaohongshu' ? '小红书' : '抖音'}}的分享文案\n</text>
       <text>• 无需手动提取链接，程序自动识别\n</text>
-      <text>• 图文作品可提取全部原图，视频作品仅能拿到封面</text>
+      <text>• 图文作品可提取全部原图，视频作品可播放并保存无水印视频</text>
     </view>
   </view>
 
