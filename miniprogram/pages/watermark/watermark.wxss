@@ -239,6 +239,16 @@
 .video-note {
   font-size: 22rpx;
   color: #CCC;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.video-cover {
+  width: 320rpx;
+  height: 320rpx;
+  border-radius: 16rpx;
+  margin-bottom: 8rpx;
+  background: #FFF1D6;
 }
 
 /* 图片网格 */

@@ -67,8 +67,8 @@
     <view class="loading-text">正在解析链接...</view>
   </view>
 
-  <!-- 错误提示 -->
-  <view class="error-area" wx:if="{{error && !loading}}">
+  <!-- 错误提示（视频作品会走下面的结果卡片，这里不重复展示） -->
+  <view class="error-area" wx:if="{{error && !loading && !result}}">
     <view class="error-icon">😿</view>
     <view class="error-text">{{error}}</view>
     <view class="btn-retry" bindtap="onParse">
@@ -86,11 +86,11 @@
       </view>
     </view>
 
-    <!-- 视频链接提示 -->
-    <view class="video-tip" wx:if="{{result.videoUrl && !result.images.length}}">
-      <text>🎬 视频链接已解析</text>
-      <view class="video-url-text">{{result.videoUrl}}</view>
-      <text class="video-note">视频文件较大，建议复制链接后使用其他工具下载</text>
+    <!-- 视频作品：只解析出标题和封面 -->
+    <view class="video-tip" wx:if="{{!result.images || !result.images.length}}">
+      <image class="video-cover" wx:if="{{result.cover}}" src="{{result.cover}}" mode="aspectFill"></image>
+      <text>🎬 这是视频作品</text>
+      <text class="video-note">目前只支持提取图文作品的图片，视频作品暂时只能解析出标题和封面</text>
     </view>
 
     <!-- 图片网格 -->
@@ -136,7 +136,7 @@
     <view class="tips-content">
       <text>• 直接粘贴{{platform === 'xiaohongshu' ? '小红书' : '抖音'}}的分享文案\n</text>
       <text>• 无需手动提取链接，程序自动识别\n</text>
-      <text>• 支持图文和视频作品</text>
+      <text>• 图文作品可提取全部原图，视频作品仅能拿到封面</text>
     </view>
   </view>
 
