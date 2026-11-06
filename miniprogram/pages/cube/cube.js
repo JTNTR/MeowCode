@@ -65,10 +65,10 @@ var HELP_TEXT = [
   {
     title: "手指怎么转",
     body:
-      "按住魔方的某个贴纸拖动，贴纸会跟着手指走，所在的那一面就转起来了。\n" +
+      "按住魔方的某个贴纸拖动，那一块会跟着手指一起转，松手自动吸附到整格。\n" +
       "从魔方外的空白处拖动是转视角，可以看背面。\n" +
-      "4 阶以上想转中间的一层，把「转法」切到「单层」，按住那一行拖动即可。\n" +
-      "奇数阶正中间那一层在真魔方上转不动，这里也不会转。",
+      "想转中间那一层，把「转法」切到「单层」，按住那一行/列拖动即可。\n" +
+      "中间层转了以后，教程会自动把魔方「换个握法」摆正，步骤照常继续。",
   },
   {
     title: "公式字母怎么看",
@@ -188,6 +188,7 @@ Page({
   onHide: function () {
     // 切后台时把没播完的打乱/复位立刻结算，回来不会卡在半转的动画里
     this._cancelSequence(true);
+    this._abortLiveTurn();
     if (this._r) this._r.anim = null;
     this._animating = false;
   },
@@ -518,6 +519,10 @@ Page({
       lastY: p.y,
       face: face,
       mode: null,
+      // 拖动中实时跟手用
+      turn: null,
+      angle: 0,
+      grabbed: false,
     };
   },
 
@@ -527,17 +532,22 @@ Page({
     var t = e.touches && e.touches[0];
     if (!t) return;
     var p = this._touchPoint(t);
+    var dx0 = p.x - tc.startX;
+    var dy0 = p.y - tc.startY;
 
     if (!tc.mode) {
-      var dx0 = p.x - tc.startX;
-      var dy0 = p.y - tc.startY;
       if (Math.abs(dx0) < 10 && Math.abs(dy0) < 10) return;
       if (tc.face) {
         tc.mode = "turn";
-        this._doTurn(tc.face, { x: tc.startX, y: tc.startY }, { x: dx0, y: dy0 });
-        return;
+        this._startLiveTurn(tc, dx0, dy0);
+      } else {
+        tc.mode = "view";
       }
-      tc.mode = "view";
+    }
+
+    if (tc.mode === "turn") {
+      this._updateLiveTurn(tc, dx0, dy0);
+      return;
     }
 
     if (tc.mode === "view") {
@@ -552,18 +562,167 @@ Page({
     }
   },
 
-  onTouchEnd: function () {
+  // ---------- 跟手转层 ----------
+  // 真魔方是「手指带多少，层就转多少」，松手前一直跟着走；
+  // 这里同样用 r.anim 把这一层实时画到当前角度，松手再吸附到最近的 90°。
+  _startLiveTurn: function (tc, dx, dy) {
+    var r = this._r;
+    // 第一次真正开始拖动时，用「起手方向」定下转轴 / 层 / 方向，
+    // 之后整个拖动过程都跟这一条轴走（手指再转弯也不换轴，和真魔方一致）
+    var t = r.inferTurn(tc.face, { x: tc.startX, y: tc.startY }, { x: dx, y: dy }, this.data.turnMode);
+    if (!t) {
+      // 退化点：按起手方向转一格
+      this._doTurn(tc.face, { x: tc.startX, y: tc.startY }, { x: dx, y: dy });
+      tc.mode = "done";
+      return;
+    }
+    tc.turn = t;
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    t.ux = dx / len;
+    t.uy = dy / len;
+
+    var k = r.turnPxPerRad(tc.face, { x: tc.startX, y: tc.startY }, t);
+    if (k === null || k === 0) {
+      this._doTurn(tc.face, { x: tc.startX, y: tc.startY }, { x: dx, y: dy });
+      tc.mode = "done";
+      return;
+    }
+    // k 是「抓点绕 turn 轴正方向转 1 弧度」时沿拖动方向的屏幕位移。
+    // 它可能为负（抓点在转轴另一侧 / 转过斜视角），负号正是判断
+    // 「该往哪边转」的依据，所以这里必须保留符号，不能取绝对值。
+    // 另外这类点的投影速度可能极小，不设下限的话一点手指就会转过 180°，
+    // 看起来就像「转反了」，所以给一个最小灵敏度。
+    var MIN_PX_PER_RAD = 45;
+    if (Math.abs(k) < MIN_PX_PER_RAD) {
+      k = (k < 0 ? -1 : 1) * MIN_PX_PER_RAD;
+    }
+    tc.pxPerRad = k;
+    var along = dx * t.ux + dy * t.uy;
+    tc.offset = along;
+    tc.angle = 0;
+    this._animating = true; // 拖动期间锁住按钮，避免中途被打乱/复位打断
+    this._liveAngle(tc, dx, dy);
+  },
+
+  // 拖动方向在屏幕上的单位向量 + 当前手指位移 → 该层转到哪个角度
+  _liveAngle: function (tc, dx, dy) {
+    var along = dx * tc.turn.ux + dy * tc.turn.uy - (tc.offset || 0);
+    // pxPerRad 带符号，除以它得到的角度天然就是「让抓点跟手」的那个方向
+    var raw = along / tc.pxPerRad;
+    tc.angle = raw;
+    var av = [0, 0, 0];
+    av[tc.turn.axis] = 1;
+    this._r.anim = {
+      axis: tc.turn.axis,
+      axisVec: av,
+      angle: raw,
+      layers: [tc.turn.layer],
+    };
+    this._draw();
+  },
+
+  _updateLiveTurn: function (tc, dx, dy) {
+    if (tc.mode === "done") return;
+    this._liveAngle(tc, dx, dy);
+  },
+
+  // 打断正在进行的跟手拖动：把已经转过的角度立即结算掉，避免卡在半转的姿势
+  _abortLiveTurn: function () {
+    var tc = this._touch;
     this._touch = null;
+    if (!tc || tc.mode !== "turn" || tc.mode === "done" || !tc.turn) {
+      // 只是点了魔方没拖动：把可能残留的拖动视角干掉
+      if (this._r) this._r.anim = null;
+      this._animating = false;
+      if (this._r) this._draw();
+      return;
+    }
+    this._settleTurn(tc);
+  },
+
+  onTouchEnd: function () {
+    var tc = this._touch;
+    this._touch = null;
+    if (!tc || tc.mode !== "turn" || tc.mode === "done" || !tc.turn) return;
+    this._settleTurn(tc);
+  },
+
+  // 松手：把当前角度吸附到最近的 90°，再一次性写进魔方状态
+  _settleTurn: function (tc) {
+    var r = this._r;
+    if (!r) return;
+    var t = tc.turn;
+    var quarter = Math.round(tc.angle / (Math.PI / 2)); // 正方向格数
+    if (quarter === 0) {
+      r.anim = null;
+      this._animating = false;
+      this._draw();
+      return;
+    }
+    // 转满 4 格的整数倍等于原地转，丢掉即可
+    quarter = ((quarter % 4) + 4) % 4;
+    if (quarter === 0) {
+      r.anim = null;
+      this._animating = false;
+      this._draw();
+      return;
+    }
+    // 3 格 = 反向 1 格，动作更短
+    var steps = quarter;
+    if (steps === 3) steps = -1;
+
+    var self = this;
+    var moves = [];
+    var stepDir = steps > 0 ? 1 : -1;
+    var count = Math.abs(steps);
+    for (var i = 0; i < count; i++) {
+      moves.push({ axis: t.axis, layer: t.layer, dir: stepDir, double: false });
+    }
+
+    // 吸附动画：从当前角度平滑补到目标角度（正方向）
+    var startAngle = tc.angle;
+    var endAngle = steps * (Math.PI / 2);
+    var dur = 100;
+    var began = Date.now();
+    var myAnim = { axis: t.axis, axisVec: [0, 0, 0], angle: startAngle, layers: [t.layer] };
+    myAnim.axisVec[t.axis] = 1;
+    r.anim = myAnim;
+    this._animating = true;
+
+    function frame() {
+      if (!self._alive) {
+        if (r.anim === myAnim) r.anim = null;
+        self._animating = false;
+        return;
+      }
+      var k = Math.min(1, (Date.now() - began) / dur);
+      var e = k < 0.5 ? 2 * k * k : -1 + (4 - 2 * k) * k;
+      if (r.anim === myAnim) myAnim.angle = startAngle + (endAngle - startAngle) * e;
+      self._draw();
+      if (k < 1) {
+        self._raf(frame);
+        return;
+      }
+      if (r.anim === myAnim) r.anim = null;
+      for (var j = 0; j < moves.length; j++) {
+        C.applyMove(self.cube, moves[j]);
+        self._pushHistory(moves[j]);
+      }
+      r.setCube(self.cube);
+      self._draw();
+      self._animating = false;
+      self._afterMove();
+      try {
+        wx.vibrateShort({ type: "light" });
+      } catch (err) {}
+      if (self.data.tutorialOn && self.data.tutorialReady) self._scheduleRebuild();
+    }
+    frame();
   },
 
   _doTurn: function (face, grab, drag) {
     var turn = this._r.inferTurn(face, grab, drag, this.data.turnMode);
     if (!turn) return;
-    // 奇数阶正中间一层在真实魔方上转不动
-    if (this.cube.n % 2 === 1 && turn.layer === (this.cube.n - 1) / 2) {
-      wx.showToast({ title: "中间一层转不动哦", icon: "none" });
-      return;
-    }
     try {
       wx.vibrateShort({ type: "light" });
     } catch (err) {}
@@ -828,6 +987,17 @@ Page({
     }
 
     var result = solver.solveCube(this.cube);
+    if (result.error) {
+      // 转了中间层（M/E/S）之后面心块会跟着转，整体朝向就变了。
+      // 真魔方遇到这种情况把魔方转一转让黄上绿前就行，这里自动做同样的「换手」。
+      var regrip = solver.findCanonicalRotation(this.cube);
+      if (regrip && regrip.length) {
+        C.applyMoves(this.cube, regrip);
+        this._history = [];
+        if (this._r) this._r.setCube(this.cube);
+        result = solver.solveCube(this.cube);
+      }
+    }
     if (result.error) {
       this._clearHighlight();
       this.setData({

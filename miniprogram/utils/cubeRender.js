@@ -30,6 +30,34 @@ var AXES = [
 var PLASTIC = "#1B2030";
 var PLASTIC_MIRROR = "#2A2418";
 var STICKER_GAP = 0.88; // 贴纸相对格子的大小
+var INNER_SHRINK = 0.86; // 内部面相对格子收缩，形成分块缝隙
+
+// 视图空间里的光源方向：用来给六个面做明暗区分，避免看起来像平面贴纸
+var LIGHT = normalize([-0.32, 0.62, 0.72]);
+
+// 颜色深浅缓存：同一种颜色 + 同一个亮度档只算一次
+var SHADE_CACHE = {};
+function hexToRgb(hex) {
+  var h = hex.replace("#", "");
+  if (h.length === 3) {
+    h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+  }
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+// k = 0.6 ~ 1.0，越大越亮
+function shadeColor(hex, k) {
+  var bucket = Math.round(k * 40);
+  var key = hex + "|" + bucket;
+  if (SHADE_CACHE[key]) return SHADE_CACHE[key];
+  var c = hexToRgb(hex);
+  var f = bucket / 40;
+  var out = "rgb(" +
+    Math.round(c[0] * f) + "," +
+    Math.round(c[1] * f) + "," +
+    Math.round(c[2] * f) + ")";
+  SHADE_CACHE[key] = out;
+  return out;
+}
 
 // ---------- 向量 / 矩阵 ----------
 
@@ -234,6 +262,11 @@ function faceCorners(center, dim, dir) {
 }
 
 // 构建绘制列表（含动画中的旋转）
+//
+// 每个小方块都按「实心方块」渲染 6 个面：
+//   - 外表面（有贴纸颜色的那一面）：黑塑料底 + 彩色贴纸
+//   - 内表面（没有颜色的那一面）：黑色塑料，朝内收缩一点形成倒角
+// 这样转动时露出来的永远是黑色塑料，而不是能看穿的魔方内部。
 Renderer.prototype.buildFaces = function () {
   var view = this.viewMatrix();
   var faces = [];
@@ -249,9 +282,13 @@ Renderer.prototype.buildFaces = function () {
 
     for (var d = 0; d < 6; d++) {
       var col = b.c[d];
-      if (!col) continue;
       var normal = AXES[d];
-      var corners = faceCorners(center, dim, d);
+      // 有贴纸的面用完整尺寸；内部面收缩成一个倒角方块，形成真实的分块缝隙
+      var fd = dim;
+      if (!col) {
+        fd = [dim[0] * INNER_SHRINK, dim[1] * INNER_SHRINK, dim[2] * INNER_SHRINK];
+      }
+      var corners = faceCorners(center, fd, d);
       if (m) {
         corners = [
           applyMat(m, corners[0]), applyMat(m, corners[1]),
@@ -266,6 +303,12 @@ Renderer.prototype.buildFaces = function () {
       var p1 = this.projectWith(view, corners[1]);
       var p2 = this.projectWith(view, corners[2]);
       var p3 = this.projectWith(view, corners[3]);
+      // 明暗：Lambert 漫反射 + 一点环境光。
+      // 三个可见面亮度不同，魔方才会有立体感，不像三张贴纸拼在一起
+      var diff = 0.55 + 0.45 * Math.max(0, dot(nv, LIGHT));
+      var lum = diff;
+      if (lum < 0.5) lum = 0.5;
+      if (lum > 1) lum = 1;
       faces.push({
         pts: [p0, p1, p2, p3],
         corners3: corners,
@@ -275,6 +318,8 @@ Renderer.prototype.buildFaces = function () {
           (corners[0][2] + corners[1][2] + corners[2][2] + corners[3][2]) / 4,
         ],
         color: this.monochrome ? "#E8C860" : COLOR[col] || "#999",
+        sticker: !!col,
+        lum: lum,
         depth: (p0.z + p1.z + p2.z + p3.z) / 4,
         cubie: b,
         dir: d,
@@ -328,15 +373,19 @@ Renderer.prototype.draw = function () {
   for (var i = 0; i < faces.length; i++) {
     var f = faces[i];
 
-    // 塑料底座
-    pathPolygon(ctx, f.pts, 0.1);
-    ctx.fillStyle = this.monochrome ? PLASTIC_MIRROR : PLASTIC;
+    // 实心塑料体：外表面和内表面都画，内表面不画贴纸。
+    // 内部面用稍深的颜色，转动时露出来的是黑色块体而不是透视到背面
+    var plastic = this.monochrome ? PLASTIC_MIRROR : PLASTIC;
+    pathPolygon(ctx, f.pts, f.sticker ? 0.08 : 0.02);
+    ctx.fillStyle = f.sticker ? shadeColor(plastic, f.lum) : shadeColor(plastic, f.lum * 0.82);
     ctx.fill();
+
+    if (!f.sticker) continue;
 
     // 贴纸
     var sticker = shrinkQuad(f.pts, STICKER_GAP);
     pathPolygon(ctx, sticker, 0.2);
-    ctx.fillStyle = f.color;
+    ctx.fillStyle = shadeColor(f.color, f.lum);
     ctx.fill();
     pathPolygon(ctx, sticker, 0.2);
     ctx.lineWidth = 1;
@@ -438,18 +487,35 @@ Renderer.prototype.inferTurn = function (face, grab, drag, mode) {
   var basis = faceBasis(face.dir);
   var su = screenVel.call(this, basis[0]);
   var sv = screenVel.call(this, basis[1]);
-  var lu = Math.sqrt(su.x * su.x + su.y * su.y) || 1;
-  var lv = Math.sqrt(sv.x * sv.x + sv.y * sv.y) || 1;
-  var du = (su.x * drag.x + su.y * drag.y) / lu;
-  var dv = (sv.x * drag.x + sv.y * drag.y) / lv;
+  var len = Math.sqrt(drag.x * drag.x + drag.y * drag.y) || 1;
 
-  // 手指在面内的 3D 拖动方向
+  // 反解手指在面内的 3D 拖动方向：
+  // 面内两个基方向投影到屏幕后得到 su / sv（一般不正交、长度也不等），
+  // 解 du*su + dv*sv = drag 这个 2×2 方程，得到 (du, dv)，
+  // 再还原成 3D 方向 t。直接拿「投影长度归一化后当系数」在斜视角下算错。
+  var det = su.x * sv.y - su.y * sv.x;
+  var du, dv;
+  if (Math.abs(det) < 1e-6) {
+    // 这个面几乎侧对屏幕：退化成投影长度归一化，方向仍然可用但精度差
+    var lu = Math.sqrt(su.x * su.x + su.y * su.y) || 1;
+    var lv = Math.sqrt(sv.x * sv.x + sv.y * sv.y) || 1;
+    du = (su.x * drag.x + su.y * drag.y) / lu;
+    dv = (sv.x * drag.x + sv.y * drag.y) / lv;
+  } else {
+    du = (drag.x * sv.y - drag.y * sv.x) / det;
+    dv = (drag.y * su.x - drag.x * su.y) / det;
+  }
+
   var t = [
     basis[0][0] * du + basis[1][0] * dv,
     basis[0][1] * du + basis[1][1] * dv,
     basis[0][2] * du + basis[1][2] * dv,
   ];
   if (dot(t, t) < 1e-9) return null;
+
+  function done(axis, layer, dir) {
+    return { axis: axis, layer: layer, dir: dir, ux: drag.x / len, uy: drag.y / len };
+  }
 
   if (mode === "slice") {
     // 转轴 = 面法线 × 拖动方向
@@ -461,20 +527,63 @@ Renderer.prototype.inferTurn = function (face, grab, drag, mode) {
     if (axis < 0 || Math.abs(w[axis]) < 1e-6) return null;
     var lay = face.cubie.p[axis];
     if (lay < 0 || lay >= n) return null;
-    return { axis: axis, layer: lay, dir: w[axis] > 0 ? 1 : -1 };
+    var dir = w[axis] > 0 ? 1 : -1;
+    return done(axis, lay, dir);
   }
 
   // 面转：转动按住的那一面。
-  // 方向 = 让「按住的那个点」跟着手指走的旋转方向；抓在正中心没有力臂时，
-  // 用一条固定的参考力臂，保证「同方向滑动 = 同方向转面」始终一致。
+  // 方向 = 让「按住的那个点」跟着手指走的旋转方向。
+  // 用屏幕空间的投影位移判定，而不是 3D 叉积：3D 叉积在侧面/斜视角下
+  // 可能和投影方向相反，用户就会看到「往前滑它往后转」。
   var ax = axisOf(face.dir);
-  var s = dot(cross(normal, c3), t);
-  if (Math.abs(s) < 0.06) {
+  var lay2 = face.cubie.p[ax];
+  var s0 = this.armScreenSign(c3, ax, view, t.ux, t.uy);
+  if (s0 === null) {
+    // 抓点正好在转轴上（投影位移≈0）：改用「面内切向」这一固定参考力臂，
+    // 保证同方向滑动始终是同一个转向
     var ref = Math.abs(du) >= Math.abs(dv) ? basis[1] : basis[0];
-    s = dot(cross(normal, ref), t);
+    var rc = [
+      c3[0] + ref[0] * 0.25,
+      c3[1] + ref[1] * 0.25,
+      c3[2] + ref[2] * 0.25,
+    ];
+    s0 = this.armScreenSign(rc, ax, view, t.ux, t.uy);
+    if (s0 === null) return null;
   }
-  if (Math.abs(s) < 1e-9) return null;
-  return { axis: ax, layer: face.cubie.p[ax], dir: (s > 0 ? 1 : -1) * normal[ax] };
+  return done(ax, lay2, s0 > 0 ? 1 : -1);
+};
+
+// 抓点绕「axis 正方向」微转时，屏幕位移沿拖动方向的分量（带符号）。
+// 等于 0 说明抓点几乎在转轴上，转动几乎不移动手指 —— 此时用面内切向兜底。
+Renderer.prototype.armScreenSign = function (c3, axis, view, ux, uy) {
+  var step = 0.04;
+  var av = [0, 0, 0];
+  av[axis] = 1;
+  var p0 = this.projectWith(view, c3);
+  var p1 = this.projectWith(view, applyMat(axisAngle(av, step), c3));
+  var s = (p1.x - p0.x) * ux + (p1.y - p0.y) * uy;
+  // 力臂太小（抓在转轴附近）：这个点的投影位移没有方向信息，判为不可用
+  if (Math.abs(s) < 1e-3) return null;
+  return s;
+};
+
+// 抓点绕 turn.axis（正方向）转 1 弧度时，屏幕位移沿「拖动方向」的分量
+// （带符号，像素/弧度）。于是 转过的角度 = 手指沿拖动方向的位移 / 该系数，
+// 抓在手里的那个点会严格跟着手指走。
+// 该点对这条轴几乎没有力臂（正对转动轴）时返回 null。
+Renderer.prototype.turnPxPerRad = function (face, grab, turn) {
+  var view = this.viewMatrix();
+  var p3 = this.pointOnFace(face, grab.x, grab.y);
+  var av = [0, 0, 0];
+  av[turn.axis] = 1;
+  var step = 0.02;
+  var p0 = this.projectWith(view, p3);
+  var p1 = this.projectWith(view, applyMat(axisAngle(av, step), p3));
+  var dx = (p1.x - p0.x) / step, dy = (p1.y - p0.y) / step;
+  var k = dx * turn.ux + dy * turn.uy;
+  // 力臂太小的时候放大系数会很离谱，视为「这个点不适合作为抓点」
+  if (Math.abs(k) < 5) return null;
+  return k;
 };
 
 module.exports = {

@@ -206,8 +206,8 @@ function moveToString(move) {
 
 // 生成一次随机打乱
 // opts: { facesOnly: bool } 为 true 时只转外层（教程默认），否则包含内部层
-// opts.skipMiddle: 奇数阶时跳过正中间一层（它只转内部的 4 个棱块，物理上等价于
-//                  整块转体，会让中心块颜色错位）
+// opts.skipMiddle: 奇数阶时只打乱外层（WCA 打乱也只转外层面）。
+//                  中间层虽然可以转，但转了会带着面心一起转，打乱后视角容易乱。
 function scramble(cube, count, opts) {
   opts = opts || {};
   var n = cube.n;

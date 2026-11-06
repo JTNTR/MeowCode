@@ -74,7 +74,7 @@
         bindtap="onTurnMode"
       >单层</view>
     </view>
-    <text class="mode-tip">{{turnMode === 'face' ? '按住哪面转哪面' : '按住哪行转哪行'}}</text>
+    <text class="mode-tip">{{turnMode === 'face' ? '按住哪面转哪面 · 跟手' : '按住哪行转哪行 · 跟手'}}</text>
   </view>
 
   <!-- 教程开关 -->
